@@ -20,6 +20,9 @@ public:
 	// 공격할 적을 지정하는 함수
 	void SetTargetEnemy(ASlimeEnemy* NewTargetEnemy);
 
+    // Weapon에서 전달받은 데미지를 저장
+    void SetDamage(float NewDamage);
+
 protected:
     // 충돌을 담당하는 루트 컴포넌트
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Projectile")
@@ -31,11 +34,28 @@ protected:
 
     // 투사체 이동 속도
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Projectile")
-    float MoveSpeed = 50.0f;
+    float MoveSpeed = 500.0f;
+
+    // 이 Projectile이 적에게 줄 데미지
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Projectile")
+    float Damage = 0.f;
 
     // 공격할 대상
     UPROPERTY()
     ASlimeEnemy* TargetEnemy;
+
 protected:
 	virtual void BeginPlay() override;
+    virtual void Tick(float DeltaTime) override;
+
+    // Projectile이 다른 컴포넌트와 겹쳤을 때 호출되는 함수
+    UFUNCTION()
+    void OnProjectileOverlap(
+        UPrimitiveComponent* OverlappedComponent,
+        AActor* OtherActor,
+        UPrimitiveComponent* OtherComponent,
+        int32 OtherBodyIndex,
+        bool bFromSweep,
+        const FHitResult& SweepResult
+    );
 };

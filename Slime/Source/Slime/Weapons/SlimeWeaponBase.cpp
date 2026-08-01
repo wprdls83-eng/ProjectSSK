@@ -12,7 +12,8 @@ ASlimeWeaponBase::ASlimeWeaponBase()
 	PrimaryActorTick.bCanEverTick = false;
 
 	AttackInterval = 1.5f;
-	AttackRange = 500.0f;
+	AttackRange = 2000.f;
+    Damage = 10.f;
 }
 
 void ASlimeWeaponBase::BeginPlay()
@@ -156,7 +157,11 @@ void ASlimeWeaponBase::SpawnProjectile(ASlimeEnemy* TargetEnemy)
     // 생성에 성공했다면 공격 대상을 전달
     if (IsValid(SpawnedProjectile))
     {
+        // 공격할 대상 전달
         SpawnedProjectile->SetTargetEnemy(TargetEnemy);
+
+        // 현재 무기의 데미지 전달
+        SpawnedProjectile->SetDamage(Damage);
 
         UE_LOG(
             LogTemp,
