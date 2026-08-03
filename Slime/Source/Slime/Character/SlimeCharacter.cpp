@@ -1,6 +1,8 @@
 ﻿// SlimeCharacter.cpp
 
 #include "Slime/Character/SlimeCharacter.h"
+#include "Slime/Weapons/SlimeWeaponBase.h"
+
 #include "Camera/CameraComponent.h" // 카메라 컴포넌트
 #include "GameFramework/SpringArmComponent.h" // 스프링암 컴포넌트
 #include "GameFramework/CharacterMovementComponent.h" // CharacterMovement를 사용하기 위한 헤더
@@ -86,7 +88,42 @@ void ASlimeCharacter::BeginPlay()
 	{
 		InputSubsystem->AddMappingContext(PlayerMappingContext, 0);
 	}
-	
+
+	// 무기 클래스 설정 실패했을 때
+	if (!WeaponClass)
+	{
+		return;
+	}
+
+	// 생성할 무기의 Owner와 Instigator를 플레이어로 설정
+	FActorSpawnParameters SpawnParameters;
+	SpawnParameters.Owner = this;
+	SpawnParameters.Instigator = this;
+
+	// 플레이어의 현재 위치와 회전에 무기 생성
+	EquippedWeapon = GetWorld()->SpawnActor<ASlimeWeaponBase>(
+		WeaponClass,
+		GetActorLocation(),
+		GetActorRotation(),
+		SpawnParameters
+	);
+
+	// 무기 생성에 실패했다면 이후 코드 실행 중지
+	if (!IsValid(EquippedWeapon))
+	{
+		return;
+	}
+
+	// 생성된 무기를 플레이어의 루트 컴포넌트에 부착
+	EquippedWeapon->AttachToComponent(
+		GetRootComponent(),
+		FAttachmentTransformRules::SnapToTargetNotIncludingScale
+	);
+
+	// 무기가 플레이어 몸 중앙에 겹치지 않도록 상대 위치 조정
+	EquippedWeapon->SetActorRelativeLocation(
+		FVector(0.f, 0.f, 50.f)
+	);
 }
 
 void ASlimeCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -128,5 +165,53 @@ void ASlimeCharacter::Move(const FInputActionValue& Value)
 	{
 		AddMovementInput(GetActorForwardVector(), MoveInput.Y);
 	}
+}
+
+void ASlimeCharacter::AddExp(int32 ExpAmount)
+{	
+	// 경험치가 0보다 작거나 같으면 함수 실행x
+	if (ExpAmount <= 0)
+	{
+		return;
+	}
+
+	// 경험치 증가
+	CurrentExp += ExpAmount;
+
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("경험치 획득: +%d | 현재 경험치: %d / %d"),
+		ExpAmount,
+		CurrentExp,
+		NeedExp
+	);
+
+	// 필요한 경험치 이상이면 레벨업
+	while (CurrentExp >= NeedExp)
+	{
+		LevelUp();
+	}
+}
+
+void ASlimeCharacter::LevelUp()
+{
+	// 레벨업에 사용한 경험치 차감
+	CurrentExp -= NeedExp;
+
+	// 플레이어 레벨 증가
+	PlayerLevel++;
+
+	// 다음 레벨 필요 경험치 증가
+	NeedExp = FMath::RoundToInt(NeedExp * 1.5f);
+
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("LEVEL UP! | 현재 레벨: %d | 남은 경험치: %d | 다음 필요 경험치: %d"),
+		PlayerLevel,
+		CurrentExp,
+		NeedExp
+	);
 }
 

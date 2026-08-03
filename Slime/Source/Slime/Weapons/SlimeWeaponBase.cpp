@@ -11,7 +11,7 @@ ASlimeWeaponBase::ASlimeWeaponBase()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	AttackInterval = 1.5f;
+	AttackInterval = 0.7f;
 	AttackRange = 2000.f;
     Damage = 10.f;
 }
@@ -46,26 +46,6 @@ void ASlimeWeaponBase::AutoAttack()
 {
     // 공격 범위 안에서 가장 가까운 적 찾기
     ASlimeEnemy* TargetEnemy = FindClosestEnemy();
-
-    // 공격할 적이 없다면 종료
-    if (!IsValid(TargetEnemy))
-    {
-        UE_LOG(
-            LogTemp,
-            Warning,
-            TEXT("공격 범위 안에 적이 없습니다.")
-        );
-
-        return;
-    }
-
-    // 선택된 적의 이름을 로그로 출력
-    UE_LOG(
-        LogTemp,
-        Warning,
-        TEXT("가장 가까운 적: %s"),
-        *TargetEnemy->GetName()
-    );
 
     // 선택된 적을 향해 투사체 생성
     SpawnProjectile(TargetEnemy);
@@ -126,12 +106,6 @@ void ASlimeWeaponBase::SpawnProjectile(ASlimeEnemy* TargetEnemy)
     // 투사체 클래스가 설정되지 않았다면 생성할 수 없음
     if (!ProjectileClass)
     {
-        UE_LOG(
-            LogTemp,
-            Warning,
-            TEXT("ProjectileClass가 설정되지 않았습니다.")
-        );
-
         return;
     }
 
@@ -162,12 +136,6 @@ void ASlimeWeaponBase::SpawnProjectile(ASlimeEnemy* TargetEnemy)
 
         // 현재 무기의 데미지 전달
         SpawnedProjectile->SetDamage(Damage);
-
-        UE_LOG(
-            LogTemp,
-            Warning,
-            TEXT("Projectile 생성 성공")
-        );
     }
 }
 

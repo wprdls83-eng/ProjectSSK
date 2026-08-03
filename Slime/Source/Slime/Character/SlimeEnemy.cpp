@@ -1,8 +1,11 @@
 ﻿// SlimeEnemy.cpp
 
 #include "Slime/Character/SlimeEnemy.h"
+#include "Slime/Item/SlimeExpOrbBase.h"
+
 #include "GameFramework/CharacterMovementComponent.h" // CharacterMovementComponent 사용
 #include "Kismet/GameplayStatics.h"
+#include "Components/CapsuleComponent.h"
 
 ASlimeEnemy::ASlimeEnemy()
 {
@@ -90,13 +93,38 @@ void ASlimeEnemy::TakeDamageFromProjectile(float DamageAmount)
     // 체력이 0 이하가 되면 사망
     if (CurrentHealth <= 0.f)
     {
-        UE_LOG(
-            LogTemp,
-            Warning,
-            TEXT("%s 사망"),
-            *GetName()
-        );
+        // 드랍할 경험치 오브 클래스가 설정되어 있다면 생성
+        if (ExpOrbClass)
+        {
+            // Enemy 캡슐의 절반 높이
+            const float CapsuleHalfHeight =
+                GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 
+            // Enemy 중심 위치에서 캡슐 절반 높이만큼 내려서 바닥 위치 계산
+            FVector SpawnLocation = GetActorLocation();
+            SpawnLocation.Z -= CapsuleHalfHeight;
+
+            // 오브가 바닥에 조금 묻히지 않도록 살짝 위로 올림
+            SpawnLocation.Z += 30.f;
+
+            // 계산한 바닥 위치에 경험치 오브 생성
+            GetWorld()->SpawnActor<ASlimeExpOrbBase>(
+                ExpOrbClass,
+                SpawnLocation,
+                FRotator::ZeroRotator
+            );
+        }
+        else
+        {
+            UE_LOG(
+                LogTemp,
+                Warning,
+                TEXT("%s의 ExpOrbClass가 설정되지 않았습니다."),
+                *GetName()
+            );
+        }
+
+        // 경험치 오브 생성 후 Enemy 제거
         Destroy();
     }
 }

@@ -6,6 +6,8 @@
 #include "GameFramework/Character.h"
 #include "SlimeEnemy.generated.h"
 
+class ASlimeExpOrbBase;
+
 UCLASS()
 class SLIME_API ASlimeEnemy : public ACharacter
 {
@@ -22,6 +24,10 @@ protected:
 	// 적의 현재 체력
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Stat")
 	float CurrentHealth;
+
+	// 경험치 종류 클래스
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<ASlimeExpOrbBase> ExpOrbClass;
 
 protected:
 	virtual void BeginPlay() override;

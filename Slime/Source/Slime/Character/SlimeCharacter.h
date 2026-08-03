@@ -11,6 +11,7 @@ class USpringArmComponent;
 class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
+class ASlimeWeaponBase;
 struct FInputActionValue;
 
 UCLASS()
@@ -38,6 +39,27 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> MoveAction;
 
+	// 플레이어가 생성할 무기 Blueprint 클래스
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	TSubclassOf<ASlimeWeaponBase> WeaponClass;
+
+	// 현재 플레이어가 장착 중인 무기
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
+	TObjectPtr<ASlimeWeaponBase> EquippedWeapon;
+
+	// 현재 플레이어 경험치
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Exp")
+	int32 CurrentExp = 0;
+
+	// 현재 플레이어 레벨
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Level")
+	int32 PlayerLevel = 1;
+
+	// 다음 레벨까지 필요한 경험치
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Level")
+	int32 NeedExp = 15;
+
+protected:
 	// WASD 입력을 받아 캐릭터를 이동시키는 함수
 	void Move(const FInputActionValue& Value);
 
@@ -47,4 +69,11 @@ protected:
 	// 입력 액션과 함수를 연결하는 함수
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
+
+public:
+	// 경험치 받는 함수
+	void AddExp(int32 ExpAmount);
+	
+	// 레밸업 함수
+	void LevelUp();
 };

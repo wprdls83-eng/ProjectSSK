@@ -48,7 +48,7 @@ protected:
 	virtual void BeginPlay() override;
     virtual void Tick(float DeltaTime) override;
 
-    // Projectile이 다른 컴포넌트와 겹쳤을 때 호출되는 함수
+    // Overlap 함수
     UFUNCTION()
     void OnProjectileOverlap(
         UPrimitiveComponent* OverlappedComponent,
