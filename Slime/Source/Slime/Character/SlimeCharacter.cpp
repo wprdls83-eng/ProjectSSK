@@ -6,6 +6,8 @@
 #include "Camera/CameraComponent.h" // 카메라 컴포넌트
 #include "GameFramework/SpringArmComponent.h" // 스프링암 컴포넌트
 #include "GameFramework/CharacterMovementComponent.h" // CharacterMovement를 사용하기 위한 헤더
+#include "Blueprint/UserWidget.h" // 위젯 헤더
+#include "Kismet/GameplayStatics.h"
 
 // Enhanced Input 관련 헤더
 #include "EnhancedInputComponent.h"
@@ -15,6 +17,9 @@
 ASlimeCharacter::ASlimeCharacter()
 {
 	PrimaryActorTick.bCanEverTick = false;
+
+	// 아직 처리하지 않은 레벨업 없음
+	PendingLevelUps = 0;
 
 	// 컨트롤러 회전을 사용하지 않음
 	bUseControllerRotationPitch = false;
@@ -196,22 +201,154 @@ void ASlimeCharacter::AddExp(int32 ExpAmount)
 
 void ASlimeCharacter::LevelUp()
 {
-	// 레벨업에 사용한 경험치 차감
+	// 레벨업에 필요한 경험치 차감
 	CurrentExp -= NeedExp;
 
 	// 플레이어 레벨 증가
 	PlayerLevel++;
 
 	// 다음 레벨 필요 경험치 증가
-	NeedExp = FMath::RoundToInt(NeedExp * 1.5f);
+	NeedExp = FMath::RoundToInt(
+		NeedExp * 1.5f
+	);
 
-	UE_LOG(
-		LogTemp,
-		Warning,
-		TEXT("LEVEL UP! | 현재 레벨: %d | 남은 경험치: %d | 다음 필요 경험치: %d"),
-		PlayerLevel,
-		CurrentExp,
-		NeedExp
+	// 선택해야 할 업그레이드 횟수 증가
+	PendingLevelUps++;
+
+	// 첫 번째 미처리 레벨업일 때만 UI 표시
+	if (PendingLevelUps == 1)
+	{
+		ShowLevelUpUI();
+	}
+}
+
+void ASlimeCharacter::ShowLevelUpUI()
+{
+	// 레벨업 UI 클래스가 설정되지 않았다면 생성 불가
+	if (!LevelUpWidgetClass)
+	{
+		return;
+	}
+
+	// 현재 플레이어 컨트롤러 가져오기
+	APlayerController* PlayerController =
+		Cast<APlayerController>(GetController());
+
+	if (!IsValid(PlayerController))
+	{
+		return;
+	}
+
+	// UI가 아직 생성되지 않았다면 한 번만 생성
+	if (!IsValid(LevelUpWidget))
+	{
+		LevelUpWidget = CreateWidget<UUserWidget>(
+			PlayerController,
+			LevelUpWidgetClass
+		);
+
+		if (!IsValid(LevelUpWidget))
+		{
+			return;
+		}
+	}
+
+	// 화면에서 제거된 기존 UI를 다시 표시
+	if (!LevelUpWidget->IsInViewport())
+	{
+		LevelUpWidget->AddToViewport();
+	}
+
+	// 게임 일시정지
+	UGameplayStatics::SetGamePaused(this, true);
+
+	// 마우스 커서 표시
+	PlayerController->bShowMouseCursor = true;
+
+	// UI만 입력받도록 변경
+	FInputModeUIOnly InputMode;
+	PlayerController->SetInputMode(InputMode);
+}
+
+void ASlimeCharacter::CompleteLevelUpSelection()
+{
+	// 처리할 레벨업이 없다면 종료
+	if (PendingLevelUps <= 0)
+	{
+		return;
+	}
+
+	// 업그레이드 하나를 선택했으므로 횟수 감소
+	PendingLevelUps--;
+
+	// 아직 선택할 업그레이드가 남아 있다면
+	// UI와 게임 일시정지 상태를 그대로 유지
+	if (PendingLevelUps > 0)
+	{
+		return;
+	}
+
+	// 모든 업그레이드 선택이 끝났다면 UI 제거
+	if (IsValid(LevelUpWidget))
+	{
+		LevelUpWidget->RemoveFromParent();
+	}
+
+	// 플레이어 컨트롤러 가져오기
+	APlayerController* PlayerController =
+		Cast<APlayerController>(GetController());
+
+	if (!IsValid(PlayerController))
+	{
+		return;
+	}
+
+	// 마우스 커서 숨기기
+	PlayerController->bShowMouseCursor = false;
+
+	// 입력을 게임 전용으로 변경
+	FInputModeGameOnly InputMode;
+	PlayerController->SetInputMode(InputMode);
+
+	// 게임 일시정지 해제
+	UGameplayStatics::SetGamePaused(
+		this,
+		false
 	);
 }
 
+void ASlimeCharacter::UpgradeDamage()
+{
+	// 무기가 없다면 종료
+	if (!IsValid(EquippedWeapon))
+	{
+		return;
+	}
+
+	// 무기에게 데미지 업그레이드를 요청
+	EquippedWeapon->UpgradeDamage();
+}
+
+void ASlimeCharacter::UpgradeAttackSpeed()
+{
+	// 무기가 없다면 종료
+	if (!IsValid(EquippedWeapon))
+	{
+		return;
+	}
+
+	// 무기에게 공격 속도 업그레이드를 요청
+	EquippedWeapon->UpgradeAttackSpeed();
+}
+
+void ASlimeCharacter::UpgradeProjectileCount()
+{
+	// 무기가 없다면 종료
+	if (!IsValid(EquippedWeapon))
+	{
+		return;
+	}
+
+	// 무기에게 발사체 개수 업그레이드를 요청
+	EquippedWeapon->UpgradeProjectileCount();
+}

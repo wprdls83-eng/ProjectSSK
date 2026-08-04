@@ -59,6 +59,18 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Level")
 	int32 NeedExp = 15;
 
+	// 아직 업그레이드를 선택하지 않은 레벨업 횟수
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Level", meta = (AllowPrivateAccess = "true"))
+	int32 PendingLevelUps;
+
+	// 레벨업 UI Blueprint 클래스
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<UUserWidget> LevelUpWidgetClass;
+
+	// 생성된 레벨업 UI
+	UPROPERTY()
+	TObjectPtr<UUserWidget> LevelUpWidget;
+
 protected:
 	// WASD 입력을 받아 캐릭터를 이동시키는 함수
 	void Move(const FInputActionValue& Value);
@@ -76,4 +88,23 @@ public:
 	
 	// 레밸업 함수
 	void LevelUp();
+
+	// 레벨업 UI를 화면에 표시
+	void ShowLevelUpUI();
+
+	// 무기 데미지 증가
+	UFUNCTION(BlueprintCallable, Category = "Upgrade")
+	void UpgradeDamage();
+
+	// 공격 속도 증가
+	UFUNCTION(BlueprintCallable, Category = "Upgrade")
+	void UpgradeAttackSpeed();
+
+	// 한 번에 발사하는 Projectile 개수 증가
+	UFUNCTION(BlueprintCallable, Category = "Upgrade")
+	void UpgradeProjectileCount();
+
+	// 업그레이드 선택 완료 후 남은 레벨업 횟수 처리
+	UFUNCTION(BlueprintCallable, Category = "Upgrade")
+	void CompleteLevelUpSelection();
 };

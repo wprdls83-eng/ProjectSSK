@@ -6,7 +6,6 @@
 
 #include "EngineUtils.h"
 
-// Sets default values
 ASlimeWeaponBase::ASlimeWeaponBase()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -14,6 +13,7 @@ ASlimeWeaponBase::ASlimeWeaponBase()
 	AttackInterval = 0.7f;
 	AttackRange = 2000.f;
     Damage = 10.f;
+    ProjectileCount = 1;
 }
 
 void ASlimeWeaponBase::BeginPlay()
@@ -47,8 +47,27 @@ void ASlimeWeaponBase::AutoAttack()
     // 공격 범위 안에서 가장 가까운 적 찾기
     ASlimeEnemy* TargetEnemy = FindClosestEnemy();
 
-    // 선택된 적을 향해 투사체 생성
-    SpawnProjectile(TargetEnemy);
+    // 공격할 적이 없다면 종료
+    if (!IsValid(TargetEnemy))
+    {
+        return;
+    }
+
+    // 투사체 사이 간격
+    const float ProjectileSpacing = 100.f;
+
+    // 전체 투사체가 가운데를 기준으로 정렬되도록 시작 위치 계산
+    const float StartOffset =
+        -((ProjectileCount - 1) * ProjectileSpacing) / 2.f;
+
+    for (int32 i = 0; i < ProjectileCount; ++i)
+    {
+        // 현재 투사체의 좌우 위치 보정값
+        const float Offset =
+            StartOffset + (i * ProjectileSpacing);
+
+        SpawnProjectile(TargetEnemy, Offset);
+    }
 }
 
 ASlimeEnemy* ASlimeWeaponBase::FindClosestEnemy() const
@@ -95,7 +114,7 @@ ASlimeEnemy* ASlimeWeaponBase::FindClosestEnemy() const
     return ClosestEnemy;
 }
 
-void ASlimeWeaponBase::SpawnProjectile(ASlimeEnemy* TargetEnemy)
+void ASlimeWeaponBase::SpawnProjectile(ASlimeEnemy* TargetEnemy, float SideOffset)
 {
     // 대상이 유효하지 않으면 생성하지 않음
     if (!IsValid(TargetEnemy))
@@ -109,14 +128,17 @@ void ASlimeWeaponBase::SpawnProjectile(ASlimeEnemy* TargetEnemy)
         return;
     }
 
-    // 투사체 생성 위치
-    const FVector SpawnLocation = GetActorLocation();
+    // 기본 생성 위치
+    FVector SpawnLocation = GetActorLocation();
 
-    // 무기에서 적을 향하는 방향 계산
+    // 무기의 오른쪽 방향으로 위치를 보정
+    SpawnLocation += GetActorRightVector() * SideOffset;
+
+    // 적을 향하는 방향 계산
     const FVector TargetDirection =
         TargetEnemy->GetActorLocation() - SpawnLocation;
 
-    // 방향 벡터를 회전값으로 변환
+    // 방향을 회전값으로 변환
     const FRotator SpawnRotation =
         TargetDirection.Rotation();
 
@@ -128,15 +150,56 @@ void ASlimeWeaponBase::SpawnProjectile(ASlimeEnemy* TargetEnemy)
             SpawnRotation
         );
 
-    // 생성에 성공했다면 공격 대상을 전달
+    // 생성된 투사체에 대상과 데미지 전달
     if (IsValid(SpawnedProjectile))
     {
-        // 공격할 대상 전달
         SpawnedProjectile->SetTargetEnemy(TargetEnemy);
-
-        // 현재 무기의 데미지 전달
         SpawnedProjectile->SetDamage(Damage);
     }
 }
 
+void ASlimeWeaponBase::UpgradeDamage()
+{   
+    // 데미지 증가 (+20 %)
+    Damage *= 1.2f;
+
+    // 현재 공격력 출력
+    UE_LOG(
+        LogTemp,
+        Warning,
+        TEXT("Current Damage : %.1f"),
+        Damage
+    );
+}
+
+void ASlimeWeaponBase::UpgradeAttackSpeed()
+{   
+    // 공격 속도 증가 (+15%)
+    AttackInterval /= 1.15f;
+
+    // 최소 공격 간격 제한
+    AttackInterval = FMath::Max(0.1f, AttackInterval);
+
+    // 현재 공격 간격 출력
+    UE_LOG(
+        LogTemp,
+        Warning,
+        TEXT("Current Attack Interval : %.2f"),
+        AttackInterval
+    );
+}
+
+void ASlimeWeaponBase::UpgradeProjectileCount()
+{
+    // 발사체 개수 1 증가
+    ProjectileCount++;
+
+    // 현재 발사체 개수 확인용 로그
+    UE_LOG(
+        LogTemp,
+        Warning,
+        TEXT("Current Projectile Count : %d"),
+        ProjectileCount
+    );
+}
 

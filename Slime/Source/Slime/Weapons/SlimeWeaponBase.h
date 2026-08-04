@@ -18,16 +18,25 @@ public:
 	ASlimeWeaponBase();
 
 protected:
+	// 무기 레밸
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
-	int WeaponLevel; // 무기 레밸
+	int WeaponLevel; 
+
+	// 발사체 수
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
-	int ProjectileCount; // 발사체 수
+	int ProjectileCount; 
+
+	// 무기 데미지
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
-	float Damage; // 무기 데미지
+	float Damage; 
+
+	// 발사 간격 (공격 속도)
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
-	float AttackInterval; // 발사 간격 (공격 속도)
+	float AttackInterval; 
+
+	// 공격 범위
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
-	float AttackRange; // 공격 범위
+	float AttackRange; 
 
 	// 생성할 투사체 클래스
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
@@ -49,5 +58,15 @@ protected:
 	ASlimeEnemy* FindClosestEnemy() const;
 
 	// 목표를 향해 투사체를 생성하는 함수
-	void SpawnProjectile(ASlimeEnemy* TargetEnemy);
+	void SpawnProjectile(ASlimeEnemy* TargetEnemy, float SideOffset = 0.f);
+
+public:
+	// 무기 데미지 증가
+	void UpgradeDamage();
+
+	// 공격 속도 증가
+	void UpgradeAttackSpeed();
+
+	// 발사체 개수 증가
+	void UpgradeProjectileCount();
 };
