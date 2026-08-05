@@ -11,7 +11,7 @@ ASlimeWeaponBase::ASlimeWeaponBase()
 	PrimaryActorTick.bCanEverTick = false;
 
 	AttackInterval = 0.7f;
-	AttackRange = 2000.f;
+	AttackRange = 1000.f;
     Damage = 10.f;
     ProjectileCount = 1;
 }

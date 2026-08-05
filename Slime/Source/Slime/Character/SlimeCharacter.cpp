@@ -2,6 +2,7 @@
 
 #include "Slime/Character/SlimeCharacter.h"
 #include "Slime/Weapons/SlimeWeaponBase.h"
+#include "Slime/UI/SlimePlayerHUDWidget.h"
 
 #include "Camera/CameraComponent.h" // 카메라 컴포넌트
 #include "GameFramework/SpringArmComponent.h" // 스프링암 컴포넌트
@@ -63,6 +64,9 @@ ASlimeCharacter::ASlimeCharacter()
 void ASlimeCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// 현재 체력을 최대 체력으로 초기화
+	CurrentHealth = MaxHealth;
 
 	// 현재 캐릭터를 조종하는 PlayerController를 가져온다.
 	APlayerController* PlayerController = Cast<APlayerController>(GetController());
@@ -129,6 +133,32 @@ void ASlimeCharacter::BeginPlay()
 	EquippedWeapon->SetActorRelativeLocation(
 		FVector(0.f, 0.f, 50.f)
 	);
+
+	// Player HUD 클래스가 설정되어 있다면
+	if (PlayerHUDWidgetClass)
+	{
+		// 현재 플레이어 컨트롤러 가져오기
+		APlayerController* HUDPlayerController =
+			Cast<APlayerController>(GetController());
+
+		// 플레이어 컨트롤러가 유효하지 않다면 종료
+		if (!IsValid(HUDPlayerController))
+		{
+			return;
+		}
+
+		// Player HUD 생성
+		PlayerHUDWidget = CreateWidget<USlimePlayerHUDWidget>(
+			HUDPlayerController,
+			PlayerHUDWidgetClass
+		);
+
+		// HUD를 화면에 표시
+		PlayerHUDWidget->AddToViewport();
+
+		// 현재 플레이어 데이터로 HUD 초기화
+		UpdatePlayerHUD();
+	}
 }
 
 void ASlimeCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -183,14 +213,8 @@ void ASlimeCharacter::AddExp(int32 ExpAmount)
 	// 경험치 증가
 	CurrentExp += ExpAmount;
 
-	UE_LOG(
-		LogTemp,
-		Warning,
-		TEXT("경험치 획득: +%d | 현재 경험치: %d / %d"),
-		ExpAmount,
-		CurrentExp,
-		NeedExp
-	);
+	// HUD 불러오기
+	UpdatePlayerHUD();
 
 	// 필요한 경험치 이상이면 레벨업
 	while (CurrentExp >= NeedExp)
@@ -215,11 +239,15 @@ void ASlimeCharacter::LevelUp()
 	// 선택해야 할 업그레이드 횟수 증가
 	PendingLevelUps++;
 
+	// HUD 불러오기
+	UpdatePlayerHUD();
+
 	// 첫 번째 미처리 레벨업일 때만 UI 표시
 	if (PendingLevelUps == 1)
 	{
 		ShowLevelUpUI();
 	}
+
 }
 
 void ASlimeCharacter::ShowLevelUpUI()
@@ -351,4 +379,45 @@ void ASlimeCharacter::UpgradeProjectileCount()
 
 	// 무기에게 발사체 개수 업그레이드를 요청
 	EquippedWeapon->UpgradeProjectileCount();
+}
+
+void ASlimeCharacter::TakeDamageFromEnemy(float DamageAmount)
+{
+	// 잘못된 데미지는 처리하지 않음
+	if (DamageAmount <= 0.f)
+	{
+		return;
+	}
+
+	// 현재 체력 감소
+	CurrentHealth -= DamageAmount;
+
+	// 체력이 0보다 작아지지 않도록 제한
+	CurrentHealth = FMath::Max(0.f, CurrentHealth);
+
+	// 변경된 체력을 HUD에 반영
+	UpdatePlayerHUD();
+
+	// 체력이 모두 소진되었다면 사망 처리
+	if (CurrentHealth <= 0.f)
+	{
+		// 임시 사망 처리
+		DisableInput(nullptr);
+	}
+}
+
+void ASlimeCharacter::UpdatePlayerHUD()
+{
+	if (!IsValid(PlayerHUDWidget))
+	{
+		return;
+	}
+
+	PlayerHUDWidget->UpdateHUD(
+		CurrentHealth,
+		MaxHealth,
+		CurrentExp,
+		NeedExp,
+		PlayerLevel
+	);
 }

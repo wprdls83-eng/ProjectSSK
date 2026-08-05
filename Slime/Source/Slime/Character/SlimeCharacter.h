@@ -12,6 +12,7 @@ class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
 class ASlimeWeaponBase;
+class USlimePlayerHUDWidget;
 struct FInputActionValue;
 
 UCLASS()
@@ -47,6 +48,14 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
 	TObjectPtr<ASlimeWeaponBase> EquippedWeapon;
 
+	// 최대 체력
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player")
+	float MaxHealth = 100.f;
+
+	// 현재 체력
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player")
+	float CurrentHealth;
+
 	// 현재 플레이어 경험치
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Exp")
 	int32 CurrentExp = 0;
@@ -67,9 +76,17 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<UUserWidget> LevelUpWidgetClass;
 
+	// 생성할 Player HUD 위젯 클래스
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<USlimePlayerHUDWidget> PlayerHUDWidgetClass;
+
 	// 생성된 레벨업 UI
 	UPROPERTY()
 	TObjectPtr<UUserWidget> LevelUpWidget;
+
+	// 게임 중 생성된 Player HUD 위젯
+	UPROPERTY()
+	TObjectPtr<USlimePlayerHUDWidget> PlayerHUDWidget;
 
 protected:
 	// WASD 입력을 받아 캐릭터를 이동시키는 함수
@@ -92,6 +109,9 @@ public:
 	// 레벨업 UI를 화면에 표시
 	void ShowLevelUpUI();
 
+	// HUD 갱신
+	void UpdatePlayerHUD();
+
 	// 무기 데미지 증가
 	UFUNCTION(BlueprintCallable, Category = "Upgrade")
 	void UpgradeDamage();
@@ -107,4 +127,8 @@ public:
 	// 업그레이드 선택 완료 후 남은 레벨업 횟수 처리
 	UFUNCTION(BlueprintCallable, Category = "Upgrade")
 	void CompleteLevelUpSelection();
+
+	// 플레이어 피격 처리
+	UFUNCTION(BlueprintCallable, Category = "Player|Health")
+	void TakeDamageFromEnemy(float DamageAmount);
 };
