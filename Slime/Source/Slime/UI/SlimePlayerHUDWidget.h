@@ -1,4 +1,4 @@
-// SlimePlayerHUDWidget.h
+ï»¿// SlimePlayerHUDWidget.h
 
 #pragma once
 
@@ -15,7 +15,7 @@ class SLIME_API USlimePlayerHUDWidget : public UUserWidget
     GENERATED_BODY()
 
 public:
-    // HP, EXP, Level °ªÀ» ÇÑ ¹ø¿¡ °»½Å
+    // HP, EXP, Level ê°’ì„ í•œ ë²ˆì— ê°±ì‹ 
     void UpdateHUD(
         float CurrentHealth,
         float MaxHealth,
@@ -25,15 +25,15 @@ public:
     );
 
 protected:
-    // WBP_PlayerHUDÀÇ HPBar¿Í ÀÚµ¿ ¿¬°á
+    // WBP_PlayerHUDì˜ HPBarì™€ ìë™ ì—°ê²°
     UPROPERTY(meta = (BindWidget))
     TObjectPtr<UProgressBar> HPBar;
 
-    // WBP_PlayerHUDÀÇ EXPBar¿Í ÀÚµ¿ ¿¬°á
+    // WBP_PlayerHUDì˜ EXPBarì™€ ìë™ ì—°ê²°
     UPROPERTY(meta = (BindWidget))
     TObjectPtr<UProgressBar> EXPBar;
 
-    // WBP_PlayerHUDÀÇ LevelText¿Í ÀÚµ¿ ¿¬°á
+    // WBP_PlayerHUDì˜ LevelTextì™€ ìë™ ì—°ê²°
     UPROPERTY(meta = (BindWidget))
     TObjectPtr<UTextBlock> LevelText;
 };

@@ -1,4 +1,4 @@
-// SlimePlayerHUDWidget.cpp
+ï»¿// SlimePlayerHUDWidget.cpp
 
 #include "Slime/UI/SlimePlayerHUDWidget.h"
 
@@ -13,7 +13,7 @@ void USlimePlayerHUDWidget::UpdateHUD(
     int32 PlayerLevel
 )
 {
-    // ÃÖ´ë Ã¼·ÂÀÌ 0º¸´Ù Å¬ ¶§¸¸ HP ºñÀ² °è»ê
+    // ìµœëŒ€ ì²´ë ¥ì´ 0ë³´ë‹¤ í´ ë•Œë§Œ HP ë¹„ìœ¨ ê³„ì‚°
     if (IsValid(HPBar) && MaxHealth > 0.f)
     {
         const float HealthPercent =
@@ -22,7 +22,7 @@ void USlimePlayerHUDWidget::UpdateHUD(
         HPBar->SetPercent(HealthPercent);
     }
 
-    // ÇÊ¿ä °æÇèÄ¡°¡ 0º¸´Ù Å¬ ¶§¸¸ EXP ºñÀ² °è»ê
+    // í•„ìš” ê²½í—˜ì¹˜ê°€ 0ë³´ë‹¤ í´ ë•Œë§Œ EXP ë¹„ìœ¨ ê³„ì‚°
     if (IsValid(EXPBar) && NeedExp > 0)
     {
         const float ExpPercent =
@@ -32,7 +32,7 @@ void USlimePlayerHUDWidget::UpdateHUD(
         EXPBar->SetPercent(ExpPercent);
     }
 
-    // ÇöÀç ·¹º§ Ç¥½Ã
+    // í˜„ìž¬ ë ˆë²¨ í‘œì‹œ
     if (IsValid(LevelText))
     {
         LevelText->SetText(
