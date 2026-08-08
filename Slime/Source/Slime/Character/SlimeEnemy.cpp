@@ -2,6 +2,7 @@
 
 #include "Slime/Character/SlimeEnemy.h"
 #include "Slime/Item/SlimeExpOrbBase.h"
+#include "Slime/Enemy/SlimeEnemySpawnManager.h"
 
 #include "GameFramework/CharacterMovementComponent.h" // CharacterMovementComponent 사용
 #include "Kismet/GameplayStatics.h"
@@ -9,7 +10,6 @@
 
 ASlimeEnemy::ASlimeEnemy()
 {
- 
 	// Tick 함수 사용
 	PrimaryActorTick.bCanEverTick = true;
 
@@ -46,7 +46,6 @@ void ASlimeEnemy::BeginPlay()
 void ASlimeEnemy::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 
     // 현재 월드의 첫 번째 플레이어 캐릭터를 가져온다.
     ACharacter* PlayerCharacter = UGameplayStatics::GetPlayerCharacter(GetWorld(), 0);
@@ -107,12 +106,19 @@ void ASlimeEnemy::TakeDamageFromProjectile(float DamageAmount)
             // 오브가 바닥에 조금 묻히지 않도록 살짝 위로 올림
             SpawnLocation.Z += 30.f;
 
-            // 계산한 바닥 위치에 경험치 오브 생성
-            GetWorld()->SpawnActor<ASlimeExpOrbBase>(
-                ExpOrbClass,
-                SpawnLocation,
-                FRotator::ZeroRotator
-            );
+            // 경험치 오브 생성
+            ASlimeExpOrbBase* SpawnedExpOrb =
+                GetWorld()->SpawnActor<ASlimeExpOrbBase>(
+                    ExpOrbClass,
+                    SpawnLocation,
+                    FRotator::ZeroRotator
+                );
+
+            // 생성된 오브에 이 Enemy의 경험치 보상값 전달
+            if (IsValid(SpawnedExpOrb))
+            {
+                SpawnedExpOrb->SetExpAmount(ExpReward);
+            }
         }
         else
         {
@@ -124,8 +130,25 @@ void ASlimeEnemy::TakeDamageFromProjectile(float DamageAmount)
             );
         }
 
+        // Enemy Spawn Manager 가져오기
+        ASlimeEnemySpawnManager* SpawnManager =
+            Cast<ASlimeEnemySpawnManager>(
+                UGameplayStatics::GetActorOfClass(
+                    this,
+                    ASlimeEnemySpawnManager::StaticClass()
+                )
+            );
+
+        // Spawn Manager가 유효하다면 처치 알림
+        if (IsValid(SpawnManager))
+        {
+            SpawnManager->NotifyEnemyKilled();
+        }
+
         // 경험치 오브 생성 후 Enemy 제거
         Destroy();
     }
 }
+
+
 

@@ -203,3 +203,9 @@ void ASlimeWeaponBase::UpgradeProjectileCount()
     );
 }
 
+void ASlimeWeaponBase::UpgradeAttackRange()
+{
+    // 공격 범위 10% 증가
+    AttackRange *= 1.1f;
+}
+

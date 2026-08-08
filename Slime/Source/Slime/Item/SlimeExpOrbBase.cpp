@@ -104,3 +104,9 @@ void ASlimeExpOrbBase::OnExpOrbOverlap(
     // 획득한 경험치 오브 제거
     Destroy();
 }
+
+void ASlimeExpOrbBase::SetExpAmount(int32 NewExpAmount)
+{
+    // 잘못된 경험치 값 방지
+    ExpAmount = FMath::Max(0, NewExpAmount);
+}

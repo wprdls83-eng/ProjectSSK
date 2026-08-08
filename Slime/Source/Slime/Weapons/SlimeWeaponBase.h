@@ -18,10 +18,6 @@ public:
 	ASlimeWeaponBase();
 
 protected:
-	// 무기 레밸
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
-	int WeaponLevel; 
-
 	// 발사체 수
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
 	int ProjectileCount; 
@@ -69,4 +65,7 @@ public:
 
 	// 발사체 개수 증가
 	void UpgradeProjectileCount();
+
+	// 공격 범위 업그레이드
+	void UpgradeAttackRange();
 };

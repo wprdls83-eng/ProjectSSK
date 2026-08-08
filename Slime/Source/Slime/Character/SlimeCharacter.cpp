@@ -421,3 +421,47 @@ void ASlimeCharacter::UpdatePlayerHUD()
 		PlayerLevel
 	);
 }
+
+void ASlimeCharacter::ApplyEarlyClearReward(EEarlyClearRewardType RewardType)
+{
+	switch (RewardType)
+	{
+	case EEarlyClearRewardType::Damage:
+		if (IsValid(EquippedWeapon))
+		{
+			EquippedWeapon->UpgradeDamage();
+		}
+		break;
+
+	case EEarlyClearRewardType::AttackSpeed:
+		if (IsValid(EquippedWeapon))
+		{
+			EquippedWeapon->UpgradeAttackSpeed();
+		}
+		break;
+
+	case EEarlyClearRewardType::AttackRange:
+		if (IsValid(EquippedWeapon))
+		{
+			EquippedWeapon->UpgradeAttackRange();
+		}
+		break;
+
+	case EEarlyClearRewardType::MaxHealth:
+		MaxHealth += 20.f;
+
+		// 최대 체력이 늘어난 만큼 현재 체력도 같이 증가
+		CurrentHealth += 20.f;
+
+		UpdatePlayerHUD();
+		break;
+
+	case EEarlyClearRewardType::MoveSpeed:
+		GetCharacterMovement()->MaxWalkSpeed += 30.f;
+		break;
+
+	case EEarlyClearRewardType::Exp:
+		AddExp(50);
+		break;
+	}
+}

@@ -25,6 +25,14 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Stat")
 	float CurrentHealth;
 
+	// 플레이어에게 주는 기본 공격 데미지
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy|Combat")
+	float AttackDamage = 10.f;
+
+	// 적을 처치했을 때 지급할 경험치
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy|Exp")
+	int32 ExpReward = 5;
+
 	// 경험치 종류 클래스
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<ASlimeExpOrbBase> ExpOrbClass;

@@ -29,13 +29,10 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Exp Orb")
     TObjectPtr<UStaticMeshComponent> MeshComponent;
 
-    // Enemy가 사망할 때 생성할 경험치 오브 클래스
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Drop")
-    TSubclassOf<ASlimeExpOrbBase> ExpOrbClass;
-
 protected:
 	virtual void BeginPlay() override;
 
+public:
     // Overlap 함수
     UFUNCTION()
     void OnExpOrbOverlap(
@@ -47,5 +44,6 @@ protected:
         const FHitResult& SweepResult
     );
 
-
+    // Enemy가 설정한 경험치 값을 오브에 전달
+    void SetExpAmount(int32 NewExpAmount);
 };

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Slime/Data/SlimeDataTypes.h"
 #include "SlimeCharacter.generated.h"
 
 // 전방 선언
@@ -131,4 +132,7 @@ public:
 	// 플레이어 피격 처리
 	UFUNCTION(BlueprintCallable, Category = "Player|Health")
 	void TakeDamageFromEnemy(float DamageAmount);
+
+	// Early Clear 보상 적용
+	void ApplyEarlyClearReward(EEarlyClearRewardType RewardType);
 };
