@@ -267,7 +267,7 @@ void ASlimeEnemySpawnManager::EndWave()
 
 void ASlimeEnemySpawnManager::NotifyEnemyKilled()
 {
-    // 처치 수 증가
+    // 통계용 처치 수 증가
     KilledEnemyCount++;
 
     // 현재 Wave 데이터가 유효하지 않다면 종료
@@ -279,10 +279,39 @@ void ASlimeEnemySpawnManager::NotifyEnemyKilled()
     const FWaveData& CurrentWaveData =
         WaveDataList[CurrentWaveIndex];
 
-    // 제한 시간 전에 모든 Enemy를 처치했다면 조기 클리어
-    if (KilledEnemyCount >= CurrentWaveData.TotalEnemies)
+    // 아직 이번 Wave에서 생성할 Enemy를
+    // 전부 생성하지 않았다면 클리어하지 않음
+    if (SpawnedEnemyCount < CurrentWaveData.TotalEnemies)
     {
-        ClearWaveEarly();
+        return;
+    }
+
+    // 현재 월드에 존재하는 모든 Enemy 검색
+    TArray<AActor*> FoundEnemies;
+
+    UGameplayStatics::GetAllActorsOfClass(
+        this,
+        ASlimeEnemy::StaticClass(),
+        FoundEnemies
+    );
+
+    // 아직 살아있는 Enemy가 있는지 확인
+    for (AActor* FoundActor : FoundEnemies)
+    {
+        ASlimeEnemy* Enemy =
+            Cast<ASlimeEnemy>(FoundActor);
+
+        if (!IsValid(Enemy))
+        {
+            continue;
+        }
+
+        // 살아있는 Enemy가 하나라도 있으면
+        // 아직 Wave가 끝난 것이 아님
+        if (!Enemy->IsDead())
+        {
+            return;
+        }
     }
 }
 

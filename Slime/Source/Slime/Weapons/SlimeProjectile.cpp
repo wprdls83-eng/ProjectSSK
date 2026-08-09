@@ -80,8 +80,8 @@ void ASlimeProjectile::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
-    // 목표가 없으면 Projectile 제거
-    if (IsValid(TargetEnemy) == false)
+    // 목표가 없거나 이미 죽은 Enemy라면 Projectile 제거
+    if (!IsValid(TargetEnemy) || TargetEnemy->IsDead())
     {
         Destroy();
         return;
@@ -116,22 +116,19 @@ void ASlimeProjectile::SetTargetEnemy(ASlimeEnemy* NewTargetEnemy)
     // Weapon에서 전달받은 적을 저장
     TargetEnemy = NewTargetEnemy;
 
-    // 목표가 사라진 경우
-    if (IsValid(TargetEnemy) == false)
+    // 목표가 없거나 이미 죽은 Enemy라면 Projectile 제거
+    if (!IsValid(TargetEnemy) || TargetEnemy->IsDead())
     {
         Destroy();
         return;
     }
 
-    if (IsValid(TargetEnemy))
-    {
         UE_LOG(
             LogTemp,
             Warning,
             TEXT("투사체 대상 설정: %s"),
             *TargetEnemy->GetName()
         );
-    }
 }
 
 void ASlimeProjectile::OnProjectileOverlap(
@@ -154,6 +151,12 @@ void ASlimeProjectile::OnProjectileOverlap(
 
     // SlimeEnemy가 아니라면 무시
     if (!IsValid(HitEnemy))
+    {
+        return;
+    }
+
+    // 이미 죽은 Enemy라면 무시
+    if (HitEnemy->IsDead())
     {
         return;
     }

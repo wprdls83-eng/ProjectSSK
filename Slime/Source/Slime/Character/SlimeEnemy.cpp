@@ -69,86 +69,99 @@ void ASlimeEnemy::Tick(float DeltaTime)
     AddMovementInput(Direction);
 }
 
+
 void ASlimeEnemy::TakeDamageFromProjectile(float DamageAmount)
 {
-    // 잘못된 피해량은 무시
-    if (DamageAmount <= 0.f)
-    {
-        return;
-    }
+	// 이미 죽은 Enemy라면 추가 데미지를 받지 않음
+	if (bIsDead)
+	{
+		return;
+	}
 
-    // 현재 체력 감소
-    CurrentHealth -= DamageAmount;
+	// 잘못된 피해량은 무시
+	if (DamageAmount <= 0.f)
+	{
+		return;
+	}
 
-    UE_LOG(
-        LogTemp,
-        Warning,
-        TEXT("%s 피격! HP : %.1f / %.1f"),
-        *GetName(),
-        CurrentHealth,
-        MaxHealth
-    );
+	// 현재 체력 감소
+	CurrentHealth -= DamageAmount;
 
-    // 체력이 0 이하가 되면 사망
-    if (CurrentHealth <= 0.f)
-    {
-        // 드랍할 경험치 오브 클래스가 설정되어 있다면 생성
-        if (ExpOrbClass)
-        {
-            // Enemy 캡슐의 절반 높이
-            const float CapsuleHalfHeight =
-                GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("%s 피격! HP : %.1f / %.1f"),
+		*GetName(),
+		CurrentHealth,
+		MaxHealth
+	);
 
-            // Enemy 중심 위치에서 캡슐 절반 높이만큼 내려서 바닥 위치 계산
-            FVector SpawnLocation = GetActorLocation();
-            SpawnLocation.Z -= CapsuleHalfHeight;
-
-            // 오브가 바닥에 조금 묻히지 않도록 살짝 위로 올림
-            SpawnLocation.Z += 30.f;
-
-            // 경험치 오브 생성
-            ASlimeExpOrbBase* SpawnedExpOrb =
-                GetWorld()->SpawnActor<ASlimeExpOrbBase>(
-                    ExpOrbClass,
-                    SpawnLocation,
-                    FRotator::ZeroRotator
-                );
-
-            // 생성된 오브에 이 Enemy의 경험치 보상값 전달
-            if (IsValid(SpawnedExpOrb))
-            {
-                SpawnedExpOrb->SetExpAmount(ExpReward);
-            }
-        }
-        else
-        {
-            UE_LOG(
-                LogTemp,
-                Warning,
-                TEXT("%s의 ExpOrbClass가 설정되지 않았습니다."),
-                *GetName()
-            );
-        }
-
-        // Enemy Spawn Manager 가져오기
-        ASlimeEnemySpawnManager* SpawnManager =
-            Cast<ASlimeEnemySpawnManager>(
-                UGameplayStatics::GetActorOfClass(
-                    this,
-                    ASlimeEnemySpawnManager::StaticClass()
-                )
-            );
-
-        // Spawn Manager가 유효하다면 처치 알림
-        if (IsValid(SpawnManager))
-        {
-            SpawnManager->NotifyEnemyKilled();
-        }
-
-        // 경험치 오브 생성 후 Enemy 제거
-        Destroy();
-    }
+	// 체력이 모두 소진되면 사망 처리
+	if (CurrentHealth <= 0.f)
+	{
+		bIsDead = true;
+		Die();
+	}
 }
 
+bool ASlimeEnemy::IsDead() const
+{
+	return bIsDead;
+}
 
+void ASlimeEnemy::Die()
+{
+	FinishDeath();
+}
 
+void ASlimeEnemy::FinishDeath()
+{
+	// 경험치 오브 클래스가 설정되어 있다면 생성
+	if (ExpOrbClass)
+	{
+		// Enemy 캡슐의 절반 높이
+		const float CapsuleHalfHeight =
+			GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+
+		// Enemy의 바닥 위치 계산
+		FVector SpawnLocation = GetActorLocation();
+		SpawnLocation.Z -= CapsuleHalfHeight;
+
+		// 오브가 바닥에 묻히지 않도록 조금 올림
+		SpawnLocation.Z += 30.f;
+
+		// 경험치 오브 생성
+		GetWorld()->SpawnActor<ASlimeExpOrbBase>(
+			ExpOrbClass,
+			SpawnLocation,
+			FRotator::ZeroRotator
+		);
+	}
+	else
+	{
+		UE_LOG(
+			LogTemp,
+			Warning,
+			TEXT("%s의 ExpOrbClass가 설정되지 않았습니다."),
+			*GetName()
+		);
+	}
+
+	// Enemy Spawn Manager 가져오기
+	ASlimeEnemySpawnManager* SpawnManager =
+		Cast<ASlimeEnemySpawnManager>(
+			UGameplayStatics::GetActorOfClass(
+				this,
+				ASlimeEnemySpawnManager::StaticClass()
+			)
+		);
+
+	// Spawn Manager에게 Enemy가 처치됐다고 알림
+	if (IsValid(SpawnManager))
+	{
+		SpawnManager->NotifyEnemyKilled();
+	}
+
+	// Enemy 제거
+	Destroy();
+}

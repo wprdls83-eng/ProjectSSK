@@ -93,6 +93,12 @@ ASlimeEnemy* ASlimeWeaponBase::FindClosestEnemy() const
             continue;
         }
 
+        // 죽은 Enemy는 타겟에서 제외
+        if (Enemy->IsDead())
+        {
+            continue;
+        }
+
         // 무기와 적 사이의 거리 제곱을 계산
         const float DistanceSquared = FVector::DistSquared(
             WeaponLocation,
@@ -118,6 +124,12 @@ void ASlimeWeaponBase::SpawnProjectile(ASlimeEnemy* TargetEnemy, float SideOffse
 {
     // 대상이 유효하지 않으면 생성하지 않음
     if (!IsValid(TargetEnemy))
+    {
+        return;
+    }
+
+    // 이미 죽은 Enemy라면 투사체 생성하지 않음
+    if (TargetEnemy->IsDead())
     {
         return;
     }

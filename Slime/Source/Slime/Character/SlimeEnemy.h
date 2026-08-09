@@ -17,6 +17,15 @@ public:
 	ASlimeEnemy();
 
 protected:
+	// 적을 처치했을 때 지급할 경험치
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy|Exp")
+	int32 ExpReward = 5;
+
+	// 경험치 종류 클래스
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<ASlimeExpOrbBase> ExpOrbClass;
+	
+public:
 	// 적의 최대 체력
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Stat")
 	float MaxHealth = 30.f;
@@ -29,19 +38,25 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy|Combat")
 	float AttackDamage = 10.f;
 
-	// 적을 처치했을 때 지급할 경험치
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy|Exp")
-	int32 ExpReward = 5;
-
-	// 경험치 종류 클래스
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<ASlimeExpOrbBase> ExpOrbClass;
+	// Enemy가 이미 사망 처리되었는지 확인
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy")
+	bool bIsDead = false;
 
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
 
+	// Enemy 사망 처리
+	// 자식 Enemy가 각자 다른 사망 행동을 만들 수 있도록 virtual로 선언
+	virtual void Die();
+
+	// 실제 Enemy 사망 마무리 처리
+	// EXP 드랍 + Wave 처치 알림 + Enemy 제거
+	void FinishDeath();
 public:
 	// Projectile에게 피해를 받는 함수
 	void TakeDamageFromProjectile(float DamageAmount);
+	
+	// 사망 여부를 반환하는 함수
+	bool IsDead() const;
 };
