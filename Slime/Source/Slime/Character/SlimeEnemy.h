@@ -34,17 +34,43 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Stat")
 	float CurrentHealth;
 
-	// 플레이어에게 주는 기본 공격 데미지
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy|Combat")
+	// 플레이어와 접촉했을 때 입힐 데미지
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy|Attack")
 	float AttackDamage = 10.f;
+
+	// 접촉 데미지 재적용 대기시간
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy|Attack")
+	float ContactDamageCooldown = 1.f;
+
+	// 현재 접촉 데미지를 줄 수 있는지
+	bool bCanDealContactDamage = true;
 
 	// Enemy가 이미 사망 처리되었는지 확인
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy")
 	bool bIsDead = false;
 
+	// 접촉 데미지 쿨타임 Timer
+	FTimerHandle ContactDamageTimerHandle;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
+
+	// 플레이어와 충돌했을 때 호출
+	UFUNCTION()
+	void OnEnemyHit(
+		UPrimitiveComponent* HitComponent,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComponent,
+		FVector NormalImpulse,
+		const FHitResult& Hit
+	);
+
+	// 접촉 데미지 쿨타임 종료
+	void ResetContactDamage();
+
+	// 현재 Enemy가 접촉 시 적용할 데미지 반환
+	virtual float GetContactDamage() const;
 
 	// Enemy 사망 처리
 	// 자식 Enemy가 각자 다른 사망 행동을 만들 수 있도록 virtual로 선언

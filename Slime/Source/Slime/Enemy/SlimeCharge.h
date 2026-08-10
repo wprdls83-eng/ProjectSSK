@@ -27,6 +27,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Charge")
 	float ChargeSpeed = 1200.f;
 
+	// 돌진 중 플레이어와 충돌했을 때의 데미지
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Charge")
+	float ChargeDamage = 30.f;
+
 	// 돌진할 때 사용할 가속도
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Charge")
 	float ChargeAcceleration = 10000.f;
@@ -78,6 +82,9 @@ protected:
 
 protected:
 	virtual void Tick(float DeltaTime) override;
+
+	// 현재 상태에 따른 접촉 데미지 반환
+	virtual float GetContactDamage() const override;
 
 public:
 	// 돌진 시작

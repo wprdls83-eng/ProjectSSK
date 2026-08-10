@@ -165,6 +165,18 @@ void ASlimeCharge::EndCharge()
 	);
 }
 
+float ASlimeCharge::GetContactDamage() const
+{
+	// 실제 돌진 중이면 돌진 전용 데미지
+	if (bIsCharging)
+	{
+		return ChargeDamage;
+	}
+
+	// 평상시에는 부모의 일반 접촉 데미지
+	return Super::GetContactDamage();
+}
+
 void ASlimeCharge::EndChargeRecovery()
 {
 	bIsRecovering = false;

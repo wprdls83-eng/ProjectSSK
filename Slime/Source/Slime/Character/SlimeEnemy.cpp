@@ -1,6 +1,7 @@
 ﻿// SlimeEnemy.cpp
 
 #include "Slime/Character/SlimeEnemy.h"
+#include "Slime/Character/SlimeCharacter.h"
 #include "Slime/Item/SlimeExpOrbBase.h"
 #include "Slime/Enemy/SlimeEnemySpawnManager.h"
 
@@ -32,15 +33,14 @@ void ASlimeEnemy::BeginPlay()
 
     CurrentHealth = MaxHealth;
 
-    UE_LOG(
-        LogTemp,
-        Warning,
-        TEXT("%s HP 초기화 : %.1f / %.1f"),
-        *GetName(),
-        CurrentHealth,
-        MaxHealth
-    );
-	
+	// Capsule이 다른 Actor와 충돌했을 때 Hit Event가 발생하도록 설정
+	GetCapsuleComponent()->SetNotifyRigidBodyCollision(true);
+
+	// 충돌 시 OnEnemyHit 함수 호출
+	GetCapsuleComponent()->OnComponentHit.AddDynamic(
+		this,
+		&ASlimeEnemy::OnEnemyHit
+	);
 }
 
 void ASlimeEnemy::Tick(float DeltaTime)
@@ -69,6 +69,11 @@ void ASlimeEnemy::Tick(float DeltaTime)
     AddMovementInput(Direction);
 }
 
+float ASlimeEnemy::GetContactDamage() const
+{
+	// 기본 Enemy는 일반 접촉 데미지 사용
+	return AttackDamage;
+}
 
 void ASlimeEnemy::TakeDamageFromProjectile(float DamageAmount)
 {
@@ -164,4 +169,56 @@ void ASlimeEnemy::FinishDeath()
 
 	// Enemy 제거
 	Destroy();
+}
+
+void ASlimeEnemy::OnEnemyHit(
+	UPrimitiveComponent* HitComponent,
+	AActor* OtherActor,
+	UPrimitiveComponent* OtherComponent,
+	FVector NormalImpulse,
+	const FHitResult& Hit
+)
+{
+	// 이미 죽은 Enemy라면 데미지를 주지 않음
+	if (bIsDead)
+	{
+		return;
+	}
+
+	// 접촉 데미지 쿨타임 중이라면 종료
+	if (!bCanDealContactDamage)
+	{
+		return;
+	}
+
+	// 충돌한 Actor가 플레이어인지 확인
+	ASlimeCharacter* PlayerCharacter =
+		Cast<ASlimeCharacter>(OtherActor);
+
+	if (!IsValid(PlayerCharacter))
+	{
+		return;
+	}
+
+	// 기존 플레이어 피격 함수 재사용
+	PlayerCharacter->TakeDamageFromEnemy(
+		GetContactDamage()
+	);
+
+	// 연속 데미지 방지
+	bCanDealContactDamage = false;
+
+	// 일정 시간 후 다시 접촉 데미지 가능
+	GetWorldTimerManager().SetTimer(
+		ContactDamageTimerHandle,
+		this,
+		&ASlimeEnemy::ResetContactDamage,
+		ContactDamageCooldown,
+		false
+	);
+}
+
+void ASlimeEnemy::ResetContactDamage()
+{
+	bCanDealContactDamage = true;
 }
