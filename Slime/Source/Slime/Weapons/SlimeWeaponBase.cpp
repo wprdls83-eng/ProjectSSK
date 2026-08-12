@@ -8,11 +8,11 @@
 
 ASlimeWeaponBase::ASlimeWeaponBase()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 
-	AttackInterval = 0.7f;
-	AttackRange = 1000.f;
-    Damage = 10.f;
+	AttackInterval = 1.f;
+	AttackRange = 500.f;
+    Damage = 30.f;
     ProjectileCount = 1;
 }
 
@@ -22,6 +22,27 @@ void ASlimeWeaponBase::BeginPlay()
 	
 	// 게임이 시작되면 자동 공격 타이머 시작
 	StartAttackTimer();
+}
+
+void ASlimeWeaponBase::Tick(float DeltaTime)
+{
+    Super::Tick(DeltaTime);
+
+    // 현재 무기의 공격 범위를 원으로 표시
+    DrawDebugCircle(
+        GetWorld(),
+        GetActorLocation(),
+        AttackRange,
+        64,
+        FColor::Green,
+        false,
+        -1.f,
+        0,
+        2.f,
+        FVector(1.f, 0.f, 0.f),
+        FVector(0.f, 1.f, 0.f),
+        false
+    );
 }
 
 void ASlimeWeaponBase::StartAttackTimer()
@@ -170,54 +191,45 @@ void ASlimeWeaponBase::SpawnProjectile(ASlimeEnemy* TargetEnemy, float SideOffse
     }
 }
 
+void ASlimeWeaponBase::StopAttackTimer()
+{
+    // 자동 공격 Timer 중지
+    GetWorldTimerManager().ClearTimer(
+        AttackTimerHandle
+    );
+}
+
 void ASlimeWeaponBase::UpgradeDamage()
 {   
-    // 데미지 증가 (+20 %)
-    Damage *= 1.2f;
-
-    // 현재 공격력 출력
-    UE_LOG(
-        LogTemp,
-        Warning,
-        TEXT("Current Damage : %.1f"),
-        Damage
-    );
+    // 설정된 증가량만큼 공격력 증가
+    Damage += DamageUpgradeAmount;
 }
 
 void ASlimeWeaponBase::UpgradeAttackSpeed()
 {   
-    // 공격 속도 증가 (+15%)
-    AttackInterval /= 1.15f;
+    // 공격 간격 감소
+    AttackInterval -= AttackIntervalUpgradeAmount;
 
-    // 최소 공격 간격 제한
-    AttackInterval = FMath::Max(0.1f, AttackInterval);
-
-    // 현재 공격 간격 출력
-    UE_LOG(
-        LogTemp,
-        Warning,
-        TEXT("Current Attack Interval : %.2f"),
+    // 너무 빨라지는 것을 방지
+    AttackInterval = FMath::Max(
+        0.1f,
         AttackInterval
     );
+
+    // 기존 공격 타이머를 새로운 공격 속도로 다시 시작
+    StopAttackTimer();
+    StartAttackTimer();
 }
 
 void ASlimeWeaponBase::UpgradeProjectileCount()
 {
     // 발사체 개수 1 증가
-    ProjectileCount++;
-
-    // 현재 발사체 개수 확인용 로그
-    UE_LOG(
-        LogTemp,
-        Warning,
-        TEXT("Current Projectile Count : %d"),
-        ProjectileCount
-    );
+    ProjectileCount += ProjectileCountUpgradeAmount;
 }
 
 void ASlimeWeaponBase::UpgradeAttackRange()
 {
-    // 공격 범위 10% 증가
-    AttackRange *= 1.1f;
+    // 설정된 증가량만큼 공격 범위 증가
+    AttackRange += AttackRangeUpgradeAmount;
 }
 

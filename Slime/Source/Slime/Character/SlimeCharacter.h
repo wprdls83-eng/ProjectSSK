@@ -14,6 +14,7 @@ class UInputMappingContext;
 class UInputAction;
 class ASlimeWeaponBase;
 class USlimePlayerHUDWidget;
+class USlimeGameOverWidget;
 struct FInputActionValue;
 
 UCLASS()
@@ -23,6 +24,10 @@ class SLIME_API ASlimeCharacter : public ACharacter
 
 public:
 	ASlimeCharacter();
+
+	// 선택한 업그레이드를 실제로 적용
+	UFUNCTION(BlueprintCallable, Category = "Upgrade")
+	void ApplyUpgrade(EPlayerUpgradeType UpgradeType);
 
 protected:
 	// 플레이어와 카메라 사이의 거리를 유지하는 스프링암
@@ -41,6 +46,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> MoveAction;
 
+	// 직업 고유 능력 입력 액션
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> SpecialAbilityAction;
+
 	// 플레이어가 생성할 무기 Blueprint 클래스
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	TSubclassOf<ASlimeWeaponBase> WeaponClass;
@@ -48,30 +57,6 @@ protected:
 	// 현재 플레이어가 장착 중인 무기
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
 	TObjectPtr<ASlimeWeaponBase> EquippedWeapon;
-
-	// 최대 체력
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player")
-	float MaxHealth = 100.f;
-
-	// 현재 체력
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player")
-	float CurrentHealth;
-
-	// 현재 플레이어 경험치
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Exp")
-	int32 CurrentExp = 0;
-
-	// 현재 플레이어 레벨
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Level")
-	int32 PlayerLevel = 1;
-
-	// 다음 레벨까지 필요한 경험치
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Level")
-	int32 NeedExp = 15;
-
-	// 아직 업그레이드를 선택하지 않은 레벨업 횟수
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Level", meta = (AllowPrivateAccess = "true"))
-	int32 PendingLevelUps;
 
 	// 레벨업 UI Blueprint 클래스
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI", meta = (AllowPrivateAccess = "true"))
@@ -89,6 +74,61 @@ protected:
 	UPROPERTY()
 	TObjectPtr<USlimePlayerHUDWidget> PlayerHUDWidget;
 
+	// 생성할 Game Over 위젯 클래스
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
+	TSubclassOf<USlimeGameOverWidget> GameOverWidgetClass;
+
+	// 생성된 Game Over 위젯
+	UPROPERTY()
+	TObjectPtr<USlimeGameOverWidget> GameOverWidget;
+
+	// 이번 레벨업에서 UI에 표시할 업그레이드 3개
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Upgrade")
+	TArray<EPlayerUpgradeType> CurrentUpgradeChoices;
+
+	// 최대 체력
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player")
+	float MaxHealth = 100.f;
+
+	// 현재 체력
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player")
+	float CurrentHealth;
+
+	// 자동 조준할 Enemy 탐색 거리
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player|Target")
+	float TargetDetectRange = 800.f;
+
+	// 최대 체력 업그레이드 증가량
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Player|Upgrade")
+	float MaxHealthUpgradeAmount = 20.f;
+
+	// 이동 속도 업그레이드 증가량
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Player|Upgrade")
+	float MoveSpeedUpgradeAmount = 30.f;
+
+	// 현재 플레이어가 사망했는지 여부
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Health")
+	bool bIsDead = false;
+
+	// 현재 플레이어 경험치
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Exp")
+	int32 CurrentExp = 0;
+
+	// 현재 플레이어 레벨
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Level")
+	int32 PlayerLevel = 1;
+
+	// 다음 레벨까지 필요한 경험치
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Level")
+	int32 NeedExp = 15;
+
+	// 아직 업그레이드를 선택하지 않은 레벨업 횟수
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Level", meta = (AllowPrivateAccess = "true"))
+	int32 PendingLevelUps;
+
+	// 현재 플레이어가 입력하고 있는 이동 방향
+	FVector CurrentMoveDirection = FVector::ZeroVector;
+
 protected:
 	// WASD 입력을 받아 캐릭터를 이동시키는 함수
 	void Move(const FInputActionValue& Value);
@@ -96,9 +136,25 @@ protected:
 	// 게임 시작 함수
 	virtual void BeginPlay() override;
 
+	virtual void Tick(float DeltaTime) override;
+
 	// 입력 액션과 함수를 연결하는 함수
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
+	// 직업 고유 능력 사용
+	virtual void UseSpecialAbility();
+
+	// 현재 Enemy 데미지를 받을 수 있는지 확인
+	virtual bool CanTakeDamageFromEnemy() const;
+
+	// 플레이어 사망 처리
+	void Die();
+
+	// Game Over UI 표시
+	void ShowGameOverUI();
+
+	// 가장 가까운 Enemy를 계속 바라봄
+	void LookAtNearestEnemy();
 
 public:
 	// 경험치 받는 함수
@@ -135,4 +191,34 @@ public:
 
 	// Early Clear 보상 적용
 	void ApplyEarlyClearReward(EEarlyClearRewardType RewardType);
+
+	// 현재 직업의 업그레이드 목록에서 중복 없이 랜덤 3개 생성
+	void GenerateUpgradeChoices();
+
+	// 현재 최대 체력 반환
+	float GetMaxHealth() const { return MaxHealth; }
+
+	// 최대 체력 증가량 반환
+	float GetMaxHealthUpgradeAmount() const { return MaxHealthUpgradeAmount; }
+
+	// 현재 이동 속도 반환
+	float GetMoveSpeed() const;
+
+	// 이동 속도 증가량 반환
+	float GetMoveSpeedUpgradeAmount() const { return MoveSpeedUpgradeAmount; }
+
+	// 현재 직업에서 등장할 수 있는 업그레이드 목록 반환
+	virtual TArray<EPlayerUpgradeType> GetAvailableUpgrades() const;
+
+	// 현재 생성된 업그레이드 선택지 반환
+	UFUNCTION(BlueprintCallable, Category = "Upgrade")
+	TArray<EPlayerUpgradeType> GetCurrentUpgradeChoices() const;
+
+	// 업그레이드 종류에 맞는 표시 이름 반환
+	UFUNCTION(BlueprintPure, Category = "Upgrade")
+	FText GetUpgradeDisplayName(EPlayerUpgradeType UpgradeType) const;
+
+	// 업그레이드 종류에 맞는 설명 반환
+	UFUNCTION(BlueprintPure, Category = "Upgrade")
+	FText GetUpgradeDescription(EPlayerUpgradeType UpgradeType) const;
 };

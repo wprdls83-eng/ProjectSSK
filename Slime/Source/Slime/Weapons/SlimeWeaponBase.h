@@ -23,16 +23,32 @@ protected:
 	int ProjectileCount; 
 
 	// 무기 데미지
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Weapon")
 	float Damage; 
 
 	// 발사 간격 (공격 속도)
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Weapon")
 	float AttackInterval; 
 
 	// 공격 범위
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
-	float AttackRange; 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Weapon")
+	float AttackRange;
+
+	// 레벨업 1회당 공격력 증가량
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Weapon|Upgrade")
+	float DamageUpgradeAmount = 5.f;
+
+	// 레벨업 1회당 공격 간격 감소량, AttackInterval이 작을수록 더 빠르게 공격
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Weapon|Upgrade")
+	float AttackIntervalUpgradeAmount = 0.1f;
+
+	// 레벨업 1회당 공격 범위 증가량
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Weapon|Upgrade")
+	float AttackRangeUpgradeAmount = 50.f;
+
+	// 발사체 수 업그레이드 증가량
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Weapon|Upgrade")
+	int32 ProjectileCountUpgradeAmount = 1;
 
 	// 생성할 투사체 클래스
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
@@ -43,12 +59,13 @@ protected:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaTime) override;
 
 	// 자동 공격 타이머를 시작하는 함수
 	void StartAttackTimer();
 
 	// 일정 시간마다 실행될 자동 공격 함수
-	void AutoAttack();
+	virtual void AutoAttack();
 
 	// 공격 범위 안에서 가장 가까운 적을 찾는 함수
 	ASlimeEnemy* FindClosestEnemy() const;
@@ -57,6 +74,9 @@ protected:
 	void SpawnProjectile(ASlimeEnemy* TargetEnemy, float SideOffset = 0.f);
 
 public:
+	// 공격 중지 함수
+	void StopAttackTimer();
+
 	// 무기 데미지 증가
 	void UpgradeDamage();
 
@@ -68,4 +88,28 @@ public:
 
 	// 공격 범위 업그레이드
 	void UpgradeAttackRange();
+
+	// 현재 무기 공격력 반환
+	float GetDamage() const { return Damage; }
+
+	// 공격력 업그레이드 증가량 반환
+	float GetDamageUpgradeAmount() const { return DamageUpgradeAmount; }
+
+	// 현재 공격 간격 반환
+	float GetAttackInterval() const { return AttackInterval; }
+
+	// 공격 간격 업그레이드 감소량 반환
+	float GetAttackIntervalUpgradeAmount() const { return AttackIntervalUpgradeAmount; }
+
+	// 현재 공격 범위 반환
+	float GetAttackRange() const { return AttackRange; }
+
+	// 공격 범위 업그레이드 증가량 반환
+	float GetAttackRangeUpgradeAmount() const { return AttackRangeUpgradeAmount; }
+
+	// 현재 발사체 수 반환
+	int32 GetProjectileCount() const { return ProjectileCount; }
+
+	// 발사체 수 증가량 반환
+	int32 GetProjectileCountUpgradeAmount() const { return ProjectileCountUpgradeAmount; }
 };

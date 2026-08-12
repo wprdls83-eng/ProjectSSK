@@ -1,23 +1,29 @@
 ﻿// SlimeCharacter.cpp
 
 #include "Slime/Character/SlimeCharacter.h"
+#include "Slime/Character/SlimeEnemy.h"
+#include "Slime/Player/SlimeArcher.h"
+#include "Slime/Player/SlimeMage.h"
 #include "Slime/Weapons/SlimeWeaponBase.h"
+#include "Slime/Weapons/SlimeWarriorWeapon.h"
+#include "Slime/Weapons/SlimeMageWeapon.h"
 #include "Slime/UI/SlimePlayerHUDWidget.h"
+#include "Slime/UI/SlimeGameOverWidget.h"
 
-#include "Camera/CameraComponent.h" // 카메라 컴포넌트
-#include "GameFramework/SpringArmComponent.h" // 스프링암 컴포넌트
-#include "GameFramework/CharacterMovementComponent.h" // CharacterMovement를 사용하기 위한 헤더
-#include "Blueprint/UserWidget.h" // 위젯 헤더
+#include "Camera/CameraComponent.h" 
+#include "GameFramework/SpringArmComponent.h" 
+#include "GameFramework/CharacterMovementComponent.h" 
+#include "Blueprint/UserWidget.h" 
 #include "Kismet/GameplayStatics.h"
+#include "EngineUtils.h"
 
-// Enhanced Input 관련 헤더
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 
 ASlimeCharacter::ASlimeCharacter()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	// 아직 처리하지 않은 레벨업 없음
 	PendingLevelUps = 0;
@@ -28,7 +34,7 @@ ASlimeCharacter::ASlimeCharacter()
 	bUseControllerRotationRoll = false;
 
 	// 이동하는 방향을 바라보도록 설정
-	GetCharacterMovement()->bOrientRotationToMovement = true;
+	GetCharacterMovement()->bOrientRotationToMovement = false;
 
 	// 회전 속도
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 50.f, 0.f);
@@ -39,8 +45,16 @@ ASlimeCharacter::ASlimeCharacter()
 	// 루트(Capsule)에 부착
 	SpringArmComp->SetupAttachment(RootComponent);
 
+	// 플레이어 회전과 카메라 회전을 분리
+	SpringArmComp->SetUsingAbsoluteRotation(true);
+
 	// 카메라와 캐릭터 사이 거리
 	SpringArmComp->TargetArmLength = 900.f;
+
+	// 고정 카메라 각도
+	SpringArmComp->SetWorldRotation(
+		FRotator(-55.f, 0.f, 0.f)
+	);
 
 	// 위에서 비스듬히 내려다보는 각도
 	SpringArmComp->SetRelativeRotation(FRotator(-55.f, 0.f, 0.f));
@@ -59,6 +73,11 @@ ASlimeCharacter::ASlimeCharacter()
 
 	// 컨트롤러 회전을 사용하지 않음
 	CameraComp->bUsePawnControlRotation = false;
+}
+
+float ASlimeCharacter::GetMoveSpeed() const
+{
+	return GetCharacterMovement()->MaxWalkSpeed;
 }
 
 void ASlimeCharacter::BeginPlay()
@@ -161,6 +180,14 @@ void ASlimeCharacter::BeginPlay()
 	}
 }
 
+void ASlimeCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	// 가장 가까운 Enemy를 계속 바라봄
+	LookAtNearestEnemy();
+}
+
 void ASlimeCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
@@ -182,24 +209,55 @@ void ASlimeCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 			this,
 			&ASlimeCharacter::Move);
 	}
+
+	// IA_SpecialAbility 입력 시 직업 고유 능력 사용
+	if (IsValid(SpecialAbilityAction))
+	{
+		EnhancedInputComponent->BindAction(
+			SpecialAbilityAction,
+			ETriggerEvent::Started,
+			this,
+			&ASlimeCharacter::UseSpecialAbility
+		);
+	}
 }
 
 void ASlimeCharacter::Move(const FInputActionValue& Value)
 {
-	// IA_Move는 Axis2D이므로 FVector2D로 값을 받는다.
-	const FVector2D MoveInput = Value.Get<FVector2D>();
-
-	// X값은 좌우 이동
-	if (FMath::IsNearlyZero(MoveInput.X) == false)
+	// 사망한 플레이어는 이동할 수 없음
+	if (bIsDead)
 	{
-		AddMovementInput(GetActorRightVector(), MoveInput.X);
+		return;
 	}
 
-	// Y값은 앞뒤 이동
-	if (FMath::IsNearlyZero(MoveInput.Y) == false)
+	// IA_Move의 2D 입력값
+	const FVector2D MoveInput =
+		Value.Get<FVector2D>();
+
+	// 월드 기준 이동 방향 계산
+	CurrentMoveDirection = FVector(
+		MoveInput.Y,
+		MoveInput.X,
+		0.f
+	);
+
+	// 대각선 이동에서도 방향 크기를 1로 유지
+	CurrentMoveDirection =
+		CurrentMoveDirection.GetSafeNormal();
+
+	// 계산된 방향으로 이동
+	if (!CurrentMoveDirection.IsNearlyZero())
 	{
-		AddMovementInput(GetActorForwardVector(), MoveInput.Y);
+		AddMovementInput(
+			CurrentMoveDirection,
+			1.f
+		);
 	}
+}
+
+void ASlimeCharacter::UseSpecialAbility()
+{
+
 }
 
 void ASlimeCharacter::AddExp(int32 ExpAmount)
@@ -251,7 +309,10 @@ void ASlimeCharacter::LevelUp()
 }
 
 void ASlimeCharacter::ShowLevelUpUI()
-{
+{	
+	// 이번 레벨업에서 보여줄 업그레이드 3개 생성
+	GenerateUpgradeChoices();
+
 	// 레벨업 UI 클래스가 설정되지 않았다면 생성 불가
 	if (!LevelUpWidgetClass)
 	{
@@ -383,6 +444,18 @@ void ASlimeCharacter::UpgradeProjectileCount()
 
 void ASlimeCharacter::TakeDamageFromEnemy(float DamageAmount)
 {
+	// 이미 죽은 플레이어라면 추가 데미지를 받지 않음
+	if (bIsDead)
+	{
+		return;
+	}
+
+	// 현재 데미지를 받을 수 없는 상태라면 종료
+	if (!CanTakeDamageFromEnemy())
+	{
+		return;
+	}
+
 	// 잘못된 데미지는 처리하지 않음
 	if (DamageAmount <= 0.f)
 	{
@@ -401,9 +474,41 @@ void ASlimeCharacter::TakeDamageFromEnemy(float DamageAmount)
 	// 체력이 모두 소진되었다면 사망 처리
 	if (CurrentHealth <= 0.f)
 	{
-		// 임시 사망 처리
-		DisableInput(nullptr);
+		Die();
 	}
+}
+
+bool ASlimeCharacter::CanTakeDamageFromEnemy() const
+{
+	// 기본 캐릭터는 데미지를 받을 수 있음
+	return true;
+}
+
+void ASlimeCharacter::Die()
+{
+	// 이미 죽은 상태라면 중복 실행 방지
+	if (bIsDead)
+	{
+		return;
+	}
+
+	// 사망 상태로 변경
+	bIsDead = true;
+
+	// 이동 즉시 정지
+	GetCharacterMovement()->StopMovementImmediately();
+
+	// 더 이상 이동하지 못하도록 Movement 비활성화
+	GetCharacterMovement()->DisableMovement();
+
+	// 장착 중인 무기가 있다면 자동 공격 중지
+	if (IsValid(EquippedWeapon))
+	{
+		EquippedWeapon->StopAttackTimer();
+	}
+
+	// Game Over UI 표시
+	ShowGameOverUI();
 }
 
 void ASlimeCharacter::UpdatePlayerHUD()
@@ -419,6 +524,52 @@ void ASlimeCharacter::UpdatePlayerHUD()
 		CurrentExp,
 		NeedExp,
 		PlayerLevel
+	);
+}
+
+void ASlimeCharacter::ShowGameOverUI()
+{
+	// Game Over Widget 클래스가 설정되지 않았다면 종료
+	if (!GameOverWidgetClass)
+	{
+		return;
+	}
+
+	// PlayerController 가져오기
+	APlayerController* PlayerController =
+		Cast<APlayerController>(GetController());
+
+	if (!IsValid(PlayerController))
+	{
+		return;
+	}
+
+	// Game Over Widget 생성
+	GameOverWidget =
+		CreateWidget<USlimeGameOverWidget>(
+			PlayerController,
+			GameOverWidgetClass
+		);
+
+	if (!IsValid(GameOverWidget))
+	{
+		return;
+	}
+
+	// 화면에 표시
+	GameOverWidget->AddToViewport();
+
+	// 마우스 커서 표시
+	PlayerController->bShowMouseCursor = true;
+
+	// UI만 입력받도록 변경
+	FInputModeUIOnly InputMode;
+	PlayerController->SetInputMode(InputMode);
+
+	// 게임 일시정지
+	UGameplayStatics::SetGamePaused(
+		this,
+		true
 	);
 }
 
@@ -464,4 +615,576 @@ void ASlimeCharacter::ApplyEarlyClearReward(EEarlyClearRewardType RewardType)
 		AddExp(50);
 		break;
 	}
+}
+
+void ASlimeCharacter::LookAtNearestEnemy()
+{
+	ASlimeEnemy* NearestEnemy = nullptr;
+
+	float NearestDistanceSquared =
+		TargetDetectRange * TargetDetectRange;
+
+	for (TActorIterator<ASlimeEnemy> It(GetWorld()); It; ++It)
+	{
+		ASlimeEnemy* Enemy = *It;
+
+		if (!IsValid(Enemy))
+		{
+			continue;
+		}
+
+		if (Enemy->IsDead())
+		{
+			continue;
+		}
+
+		const float DistanceSquared =
+			FVector::DistSquared2D(
+				GetActorLocation(),
+				Enemy->GetActorLocation()
+			);
+
+		if (DistanceSquared > NearestDistanceSquared)
+		{
+			continue;
+		}
+
+		NearestDistanceSquared = DistanceSquared;
+		NearestEnemy = Enemy;
+	}
+
+	if (!IsValid(NearestEnemy))
+	{
+		return;
+	}
+
+	FVector LookDirection =
+		NearestEnemy->GetActorLocation()
+		- GetActorLocation();
+
+	LookDirection.Z = 0.f;
+
+	if (LookDirection.IsNearlyZero())
+	{
+		return;
+	}
+
+	SetActorRotation(
+		LookDirection.Rotation()
+	);
+}
+
+void ASlimeCharacter::GenerateUpgradeChoices()
+{
+	// 이전 레벨업 선택지 제거
+	CurrentUpgradeChoices.Empty();
+
+	// 현재 직업에서 등장 가능한 업그레이드 목록
+	TArray<EPlayerUpgradeType> AvailableUpgrades =
+		GetAvailableUpgrades();
+
+	// 최대 3개까지만 선택
+	const int32 ChoiceCount =
+		FMath::Min(3, AvailableUpgrades.Num());
+
+	for (int32 i = 0; i < ChoiceCount; ++i)
+	{
+		// 남아 있는 후보 중 하나를 랜덤 선택
+		const int32 RandomIndex =
+			FMath::RandRange(
+				0,
+				AvailableUpgrades.Num() - 1
+			);
+
+		// 선택된 업그레이드를 현재 선택지에 추가
+		CurrentUpgradeChoices.Add(
+			AvailableUpgrades[RandomIndex]
+		);
+
+		// 같은 업그레이드가 다시 선택되지 않도록 후보에서 제거
+		AvailableUpgrades.RemoveAt(
+			RandomIndex
+		);
+	}
+}
+
+TArray<EPlayerUpgradeType> ASlimeCharacter::GetCurrentUpgradeChoices() const
+{
+	return CurrentUpgradeChoices;
+}
+
+FText ASlimeCharacter::GetUpgradeDisplayName(
+	EPlayerUpgradeType UpgradeType
+) const
+{
+	switch (UpgradeType)
+	{
+	case EPlayerUpgradeType::Damage:
+		return FText::FromString(TEXT("공격력 증가"));
+
+	case EPlayerUpgradeType::AttackSpeed:
+		return FText::FromString(TEXT("공격 속도 증가"));
+
+	case EPlayerUpgradeType::AttackRange:
+		return FText::FromString(TEXT("공격 범위 증가"));
+
+	case EPlayerUpgradeType::MaxHealth:
+		return FText::FromString(TEXT("최대 체력 증가"));
+
+	case EPlayerUpgradeType::MoveSpeed:
+		return FText::FromString(TEXT("이동 속도 증가"));
+
+	case EPlayerUpgradeType::WarriorMaxHitEnemies:
+		return FText::FromString(TEXT("최대 타격 수 증가"));
+
+	case EPlayerUpgradeType::WarriorAttackAngle:
+		return FText::FromString(TEXT("공격 각도 증가"));
+
+	case EPlayerUpgradeType::ArcherProjectileCount:
+		return FText::FromString(TEXT("투사체 수 증가"));
+
+	case EPlayerUpgradeType::ArcherDashCooldown:
+		return FText::FromString(TEXT("대쉬 쿨타임 감소"));
+
+	case EPlayerUpgradeType::MageExplosionRadius:
+		return FText::FromString(TEXT("폭발 범위 증가"));
+
+	case EPlayerUpgradeType::MageReflectDuration:
+		return FText::FromString(TEXT("반사 지속시간 증가"));
+
+	case EPlayerUpgradeType::MageReflectDamage:
+		return FText::FromString(TEXT("반사 피해 증가"));
+
+	default:
+		return FText::FromString(TEXT("알 수 없는 업그레이드"));
+	}
+}
+
+FText ASlimeCharacter::GetUpgradeDescription(
+	EPlayerUpgradeType UpgradeType
+) const
+{
+	if (!IsValid(EquippedWeapon))
+	{
+		return FText::GetEmpty();
+	}
+
+	switch (UpgradeType)
+	{
+	case EPlayerUpgradeType::Damage:
+	{
+		const float Current =
+			EquippedWeapon->GetDamage();
+
+		const float Amount =
+			EquippedWeapon->GetDamageUpgradeAmount();
+
+		return FText::FromString(
+			FString::Printf(
+				TEXT("공격력 %.0f → %.0f (+%.0f)"),
+				Current,
+				Current + Amount,
+				Amount
+			)
+		);
+	}
+
+	case EPlayerUpgradeType::AttackSpeed:
+	{
+		const float Current =
+			EquippedWeapon->GetAttackInterval();
+
+		const float Amount =
+			EquippedWeapon->GetAttackIntervalUpgradeAmount();
+
+		const float Result =
+			FMath::Max(
+				0.1f,
+				Current - Amount
+			);
+
+		return FText::FromString(
+			FString::Printf(
+				TEXT("공격 간격 %.1f초 → %.1f초"),
+				Current,
+				Result
+			)
+		);
+	}
+
+	case EPlayerUpgradeType::AttackRange:
+	{
+		const float Current =
+			EquippedWeapon->GetAttackRange();
+
+		const float Amount =
+			EquippedWeapon->GetAttackRangeUpgradeAmount();
+
+		return FText::FromString(
+			FString::Printf(
+				TEXT("공격 범위 %.0f → %.0f (+%.0f)"),
+				Current,
+				Current + Amount,
+				Amount
+			)
+		);
+	}
+
+	case EPlayerUpgradeType::MaxHealth:
+	{
+		const float Current = GetMaxHealth();
+		const float Amount = GetMaxHealthUpgradeAmount();
+
+		return FText::FromString(
+			FString::Printf(
+				TEXT("최대 체력 %.0f → %.0f (+%.0f)"),
+				Current,
+				Current + Amount,
+				Amount
+			)
+		);
+	}
+
+	case EPlayerUpgradeType::MoveSpeed:
+	{
+		const float Current = GetMoveSpeed();
+		const float Amount = GetMoveSpeedUpgradeAmount();
+
+		return FText::FromString(
+			FString::Printf(
+				TEXT("이동 속도 %.0f → %.0f (+%.0f)"),
+				Current,
+				Current + Amount,
+				Amount
+			)
+		);
+	}
+
+	case EPlayerUpgradeType::WarriorMaxHitEnemies:
+	{
+		ASlimeWarriorWeapon* WarriorWeapon =
+			Cast<ASlimeWarriorWeapon>(EquippedWeapon);
+
+		if (!IsValid(WarriorWeapon))
+		{
+			return FText::GetEmpty();
+		}
+
+		const int32 Current =
+			WarriorWeapon->GetMaxHitEnemies();
+
+		const int32 Amount =
+			WarriorWeapon->GetMaxHitEnemiesUpgradeAmount();
+
+		return FText::FromString(
+			FString::Printf(
+				TEXT("최대 타격 수 %d → %d (+%d)"),
+				Current,
+				Current + Amount,
+				Amount
+			)
+		);
+	}
+
+	case EPlayerUpgradeType::WarriorAttackAngle:
+	{
+		ASlimeWarriorWeapon* WarriorWeapon =
+			Cast<ASlimeWarriorWeapon>(EquippedWeapon);
+
+		if (!IsValid(WarriorWeapon))
+		{
+			return FText::GetEmpty();
+		}
+
+		const float Current =
+			WarriorWeapon->GetAttackAngle();
+
+		const float Amount =
+			WarriorWeapon->GetAttackAngleUpgradeAmount();
+
+		return FText::FromString(
+			FString::Printf(
+				TEXT("공격 각도 %.0f° → %.0f° (+%.0f°)"),
+				Current,
+				Current + Amount,
+				Amount
+			)
+		);
+	}
+
+	case EPlayerUpgradeType::ArcherProjectileCount:
+	{
+		const int32 Current =
+			EquippedWeapon->GetProjectileCount();
+
+		const int32 Amount =
+			EquippedWeapon->GetProjectileCountUpgradeAmount();
+
+		return FText::FromString(
+			FString::Printf(
+				TEXT("투사체 수 %d → %d (+%d)"),
+				Current,
+				Current + Amount,
+				Amount
+			)
+		);
+	}
+
+	case EPlayerUpgradeType::ArcherDashCooldown:
+	{
+		const ASlimeArcher* Archer =
+			Cast<ASlimeArcher>(this);
+
+		if (!IsValid(Archer))
+		{
+			return FText::GetEmpty();
+		}
+
+		const float Current =
+			Archer->GetDashCooldown();
+
+		const float Amount =
+			Archer->GetDashCooldownUpgradeAmount();
+
+		// 쿨타임이 음수가 되지 않도록 방지
+		const float Result =
+			FMath::Max(
+				0.f,
+				Current - Amount
+			);
+
+		return FText::FromString(
+			FString::Printf(
+				TEXT("대쉬 쿨타임 %.1f초 → %.1f초 (-%.1f초)"),
+				Current,
+				Result,
+				Amount
+			)
+		);
+	}
+
+	case EPlayerUpgradeType::MageExplosionRadius:
+	{
+		ASlimeMageWeapon* MageWeapon =
+			Cast<ASlimeMageWeapon>(EquippedWeapon);
+
+		if (!IsValid(MageWeapon))
+		{
+			return FText::GetEmpty();
+		}
+
+		const float Current =
+			MageWeapon->GetExplosionRadius();
+
+		const float Amount =
+			MageWeapon->GetExplosionRadiusUpgradeAmount();
+
+		return FText::FromString(
+			FString::Printf(
+				TEXT("폭발 범위 %.0f → %.0f (+%.0f)"),
+				Current,
+				Current + Amount,
+				Amount
+			)
+		);
+	}
+
+	case EPlayerUpgradeType::MageReflectDuration:
+	{
+		const ASlimeMage* Mage =
+			Cast<ASlimeMage>(this);
+
+		if (!IsValid(Mage))
+		{
+			return FText::GetEmpty();
+		}
+
+		const float Current =
+			Mage->GetReflectDuration();
+
+		const float Amount =
+			Mage->GetReflectDurationUpgradeAmount();
+
+		return FText::FromString(
+			FString::Printf(
+				TEXT("반사 지속시간 %.1f초 → %.1f초 (+%.1f초)"),
+				Current,
+				Current + Amount,
+				Amount
+			)
+		);
+	}
+
+	case EPlayerUpgradeType::MageReflectDamage:
+	{
+		const ASlimeMage* Mage =
+			Cast<ASlimeMage>(this);
+
+		if (!IsValid(Mage))
+		{
+			return FText::GetEmpty();
+		}
+
+		const float Current =
+			Mage->GetReflectDamageMultiplier();
+
+		const float Amount =
+			Mage->GetReflectDamageMultiplierUpgradeAmount();
+
+		return FText::FromString(
+			FString::Printf(
+				TEXT("반사 피해 %.0f%% → %.0f%% (+%.0f%%)"),
+				Current * 100.f,
+				(Current + Amount) * 100.f,
+				Amount * 100.f
+			)
+		);
+	}
+
+	default:
+		return FText::GetEmpty();
+	}
+}
+
+void ASlimeCharacter::ApplyUpgrade(EPlayerUpgradeType UpgradeType)
+{
+	switch (UpgradeType)
+	{
+	case EPlayerUpgradeType::Damage:
+	{
+		if (IsValid(EquippedWeapon))
+		{
+			EquippedWeapon->UpgradeDamage();
+		}
+		break;
+	}
+
+	case EPlayerUpgradeType::AttackSpeed:
+	{
+		if (IsValid(EquippedWeapon))
+		{
+			EquippedWeapon->UpgradeAttackSpeed();
+		}
+		break;
+	}
+
+	case EPlayerUpgradeType::AttackRange:
+	{
+		if (IsValid(EquippedWeapon))
+		{
+			EquippedWeapon->UpgradeAttackRange();
+		}
+		break;
+	}
+
+	case EPlayerUpgradeType::MaxHealth:
+	{
+		MaxHealth += MaxHealthUpgradeAmount;
+
+		// 최대 체력이 늘어난 만큼 현재 체력도 증가
+		CurrentHealth += MaxHealthUpgradeAmount;
+
+		UpdatePlayerHUD();
+		break;
+	}
+
+	case EPlayerUpgradeType::MoveSpeed:
+	{
+		GetCharacterMovement()->MaxWalkSpeed +=
+			MoveSpeedUpgradeAmount;
+
+		break;
+	}
+
+	case EPlayerUpgradeType::WarriorMaxHitEnemies:
+	{
+		ASlimeWarriorWeapon* WarriorWeapon =
+			Cast<ASlimeWarriorWeapon>(EquippedWeapon);
+
+		if (IsValid(WarriorWeapon))
+		{
+			WarriorWeapon->UpgradeMaxHitEnemies();
+		}
+
+		break;
+	}
+
+	case EPlayerUpgradeType::WarriorAttackAngle:
+	{
+		ASlimeWarriorWeapon* WarriorWeapon =
+			Cast<ASlimeWarriorWeapon>(EquippedWeapon);
+
+		if (IsValid(WarriorWeapon))
+		{
+			WarriorWeapon->UpgradeAttackAngle();
+		}
+
+		break;
+	}
+
+	case EPlayerUpgradeType::ArcherProjectileCount:
+	{
+		if (IsValid(EquippedWeapon))
+		{
+			EquippedWeapon->UpgradeProjectileCount();
+		}
+
+		break;
+	}
+
+	case EPlayerUpgradeType::ArcherDashCooldown:
+	{
+		ASlimeArcher* Archer =
+			Cast<ASlimeArcher>(this);
+
+		if (IsValid(Archer))
+		{
+			Archer->UpgradeDashCooldown();
+		}
+
+		break;
+	}
+
+	case EPlayerUpgradeType::MageExplosionRadius:
+	{
+		ASlimeMageWeapon* MageWeapon =
+			Cast<ASlimeMageWeapon>(EquippedWeapon);
+
+		if (IsValid(MageWeapon))
+		{
+			MageWeapon->UpgradeExplosionRadius();
+		}
+
+		break;
+	}
+
+	case EPlayerUpgradeType::MageReflectDuration:
+	{
+		ASlimeMage* Mage =
+			Cast<ASlimeMage>(this);
+
+		if (IsValid(Mage))
+		{
+			Mage->UpgradeReflectDuration();
+		}
+
+		break;
+	}
+
+	case EPlayerUpgradeType::MageReflectDamage:
+	{
+		ASlimeMage* Mage =
+			Cast<ASlimeMage>(this);
+
+		if (IsValid(Mage))
+		{
+			Mage->UpgradeReflectDamage();
+		}
+
+		break;
+	}
+	}
+
+	// 업그레이드 적용 후 HUD 갱신
+	UpdatePlayerHUD();
 }

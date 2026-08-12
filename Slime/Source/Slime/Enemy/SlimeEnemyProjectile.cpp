@@ -2,9 +2,12 @@
 
 #include "Slime/Enemy/SlimeEnemyProjectile.h"
 #include "Slime/Character/SlimeCharacter.h"
+#include "Slime/Character/SlimeEnemy.h"
+#include "Slime/Player/SlimeMage.h"
 
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "EngineUtils.h"
 
 ASlimeEnemyProjectile::ASlimeEnemyProjectile()
 {
@@ -124,7 +127,36 @@ void ASlimeEnemyProjectile::OnProjectileOverlap(
 	const FHitResult& SweepResult
 )
 {
-	// 플레이어인지 확인
+	// 반사된 Projectile이 Enemy와 충돌
+	if (bIsReflected)
+	{
+		ASlimeEnemy* HitEnemy =
+			Cast<ASlimeEnemy>(OtherActor);
+
+		// Enemy가 아니라면 무시
+		if (!IsValid(HitEnemy))
+		{
+			return;
+		}
+
+		// 죽은 Enemy라면 무시
+		if (HitEnemy->IsDead())
+		{
+			return;
+		}
+
+		// 반사된 Projectile 데미지 적용
+		HitEnemy->TakeDamageFromProjectile(
+			Damage * ReflectDamageMultiplier
+		);
+
+		// 적중 후 Projectile 제거
+		Destroy();
+
+		return;
+	}
+
+	// 일반 Enemy Projectile
 	ASlimeCharacter* PlayerCharacter =
 		Cast<ASlimeCharacter>(OtherActor);
 
@@ -133,12 +165,93 @@ void ASlimeEnemyProjectile::OnProjectileOverlap(
 		return;
 	}
 
-	// 기존 플레이어 피격 함수 재사용
+	// 마법사 반사 확인
+	ASlimeMage* Mage =
+		Cast<ASlimeMage>(PlayerCharacter);
+
+	if (IsValid(Mage) && Mage->IsReflecting())
+	{
+		// 가장 가까운 Enemy 찾기
+		ASlimeEnemy* TargetEnemy =
+			FindNearestEnemy();
+
+		// 반사할 Enemy가 없다면 Projectile 제거
+		if (!IsValid(TargetEnemy))
+		{
+			Destroy();
+			return;
+		}
+
+		// 반사 상태로 변경
+		bIsReflected = true;
+
+		// Projectile → Enemy 방향 계산
+		FVector ReflectDirection =
+			TargetEnemy->GetActorLocation()
+			- GetActorLocation();
+
+		ReflectDirection.Z = 0.f;
+		ReflectDirection.Normalize();
+
+		// 반사 방향으로 변경
+		SetMoveDirection(
+			ReflectDirection
+		);
+
+		// 마법사에게 데미지를 주지 않고 종료
+		return;
+	}
+
+	// 일반 플레이어 피격
 	PlayerCharacter->TakeDamageFromEnemy(
 		Damage
 	);
 
-	// 플레이어에게 맞으면 투사체 제거
+	// 플레이어에게 맞으면 Projectile 제거
 	Destroy();
+}
+
+ASlimeEnemy* ASlimeEnemyProjectile::FindNearestEnemy() const
+{
+	// 현재 가장 가까운 Enemy
+	ASlimeEnemy* NearestEnemy = nullptr;
+
+	// 현재 가장 가까운 거리
+	float NearestDistanceSquared =
+		TNumericLimits<float>::Max();
+
+	// 모든 Enemy 확인
+	for (TActorIterator<ASlimeEnemy> It(GetWorld()); It; ++It)
+	{
+		ASlimeEnemy* Enemy = *It;
+
+		// 유효하지 않은 Enemy는 제외
+		if (!IsValid(Enemy))
+		{
+			continue;
+		}
+
+		// 죽은 Enemy는 제외
+		if (Enemy->IsDead())
+		{
+			continue;
+		}
+
+		// Projectile과 Enemy 사이 거리 계산
+		const float DistanceSquared =
+			FVector::DistSquared2D(
+				GetActorLocation(),
+				Enemy->GetActorLocation()
+			);
+
+		// 현재보다 가까운 Enemy라면 갱신
+		if (DistanceSquared < NearestDistanceSquared)
+		{
+			NearestDistanceSquared = DistanceSquared;
+			NearestEnemy = Enemy;
+		}
+	}
+
+	return NearestEnemy;
 }
 

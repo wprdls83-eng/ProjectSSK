@@ -22,6 +22,14 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawn")
     float SpawnRadius = 1500.f;
 
+    // 실제 Wave 시작 전 대기 시간
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wave")
+    float WaveStartDelay = 3.f;
+
+    // Wave Clear 이후 대기 시간
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wave")
+    float WaveClearDelay = 3.f;
+
     // Wave별 설정 데이터를 저장하는 배열
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wave")
     TArray<FWaveData> WaveDataList;
@@ -41,6 +49,9 @@ protected:
 
     // Wave 종료 타이머
     FTimerHandle WaveTimerHandle;
+
+    // Wave 전환 Timer
+    FTimerHandle WaveTransitionTimerHandle;
 
 protected:
 	virtual void BeginPlay() override;
@@ -67,4 +78,10 @@ public:
 
     // Early Clear 보상 지급
     void GiveEarlyClearReward();
+
+    // 대기 시간이 끝난 후 다음 Wave 시작
+    void StartNextWave();
+
+    // Wave Clear 대기가 끝난 후 다음 Wave 시작 전 대기 시작
+    void PrepareNextWave();
 };

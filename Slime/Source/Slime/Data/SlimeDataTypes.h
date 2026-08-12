@@ -17,6 +17,40 @@ enum class EEarlyClearRewardType : uint8
 	Exp
 };
 
+// 레벨업 시 선택할 수 있는 업그레이드 종류 Enum
+UENUM(BlueprintType)
+enum class EPlayerUpgradeType : uint8
+{
+	// 공통 업그레이드
+	Damage,
+	AttackSpeed,
+	AttackRange,
+	MaxHealth,
+	MoveSpeed,
+
+	// 전사 전용
+	WarriorMaxHitEnemies,
+	WarriorAttackAngle,
+
+	// 궁수 전용
+	ArcherProjectileCount,
+	ArcherDashCooldown,
+
+	// 마법사 전용
+	MageExplosionRadius,
+	MageReflectDuration,
+	MageReflectDamage
+};
+
+// 플레이어 직업 Enum
+UENUM(BlueprintType)
+enum class EPlayerJob : uint8
+{
+	Warrior,
+	Archer,
+	Mage
+};
+
 USTRUCT(BlueprintType)
 struct FEnemySpawnData
 {

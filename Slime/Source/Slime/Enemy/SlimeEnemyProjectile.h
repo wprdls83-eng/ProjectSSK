@@ -8,6 +8,7 @@
 
 class USphereComponent;
 class UStaticMeshComponent;
+class ASlimeEnemy;
 
 UCLASS()
 class SLIME_API ASlimeEnemyProjectile : public AActor
@@ -33,6 +34,13 @@ protected:
 	// 플레이어에게 입힐 데미지
 	float Damage = 0.f;
 
+	// 반사된 Projectile의 데미지 배율
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|Reflect")
+	float ReflectDamageMultiplier = 1.5f;
+
+	// 마법사에게 반사된 Projectile인지 여부
+	bool bIsReflected = false;
+
 	// 발사 순간 결정된 이동 방향
 	FVector MoveDirection = FVector::ZeroVector;
 
@@ -50,6 +58,9 @@ protected:
 		bool bFromSweep,
 		const FHitResult& SweepResult
 	);
+
+	// 현재 위치에서 가장 가까운 Enemy 찾기
+	ASlimeEnemy* FindNearestEnemy() const;
 
 public:
 	// 원거리 Enemy가 발사 방향 설정

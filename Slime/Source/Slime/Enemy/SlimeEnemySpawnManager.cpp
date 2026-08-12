@@ -18,8 +18,15 @@ void ASlimeEnemySpawnManager::BeginPlay()
 {
 	Super::BeginPlay();
 	
-    // Wave 시작
-    StartWave();
+    // 게임 시작 후 3초 기다렸다가
+    // 첫 번째 Wave 시작
+    GetWorldTimerManager().SetTimer(
+        WaveTransitionTimerHandle,
+        this,
+        &ASlimeEnemySpawnManager::StartNextWave,
+        WaveStartDelay,
+        false
+    );
 }
 
 void ASlimeEnemySpawnManager::SpawnEnemy()
@@ -192,16 +199,6 @@ void ASlimeEnemySpawnManager::StartWave()
         return;
     }
 
-    GEngine->AddOnScreenDebugMessage(
-        -1,
-        2.f,
-        FColor::Green,
-        FString::Printf(
-            TEXT("Wave %d Start"),
-            CurrentWaveIndex + 1
-        )
-    );
-
     // 현재 Wave 데이터 가져오기
     const FWaveData& CurrentWaveData =
         WaveDataList[CurrentWaveIndex];
@@ -261,8 +258,14 @@ void ASlimeEnemySpawnManager::EndWave()
         return;
     }
 
-    // 다음 Wave 즉시 시작
-    StartWave();
+    // 일정 시간 후 다음 Wave 시작
+    GetWorldTimerManager().SetTimer(
+        WaveTransitionTimerHandle,
+        this,
+        &ASlimeEnemySpawnManager::PrepareNextWave,
+        WaveClearDelay,
+        false
+    );
 }
 
 void ASlimeEnemySpawnManager::NotifyEnemyKilled()
@@ -350,8 +353,14 @@ void ASlimeEnemySpawnManager::ClearWaveEarly()
         return;
     }
 
-    // 다음 Wave 즉시 시작
-    StartWave();
+    // 다음 Wave 시작 전 3초 대기
+    GetWorldTimerManager().SetTimer(
+        WaveTransitionTimerHandle,
+        this,
+        &ASlimeEnemySpawnManager::PrepareNextWave,
+        WaveClearDelay,
+        false
+    );
 }
 
 void ASlimeEnemySpawnManager::GiveEarlyClearReward()
@@ -417,5 +426,46 @@ void ASlimeEnemySpawnManager::GiveEarlyClearReward()
             TEXT("Early Clear Reward : %s"),
             *RewardName
         )
+    );
+}
+
+void ASlimeEnemySpawnManager::StartNextWave()
+{
+    // 다음 Wave가 존재하지 않는다면 종료
+    if (!WaveDataList.IsValidIndex(CurrentWaveIndex))
+    {
+        return;
+    }
+
+    // Wave START 출력
+    GEngine->AddOnScreenDebugMessage(
+        -1,
+        2.f,
+        FColor::Green,
+        FString::Printf(
+            TEXT("WAVE %d START!"),
+            CurrentWaveIndex + 1
+        )
+    );
+
+    // 실제 Wave 시작
+    StartWave();
+}
+
+void ASlimeEnemySpawnManager::PrepareNextWave()
+{
+    // 다음 Wave가 없다면 종료
+    if (!WaveDataList.IsValidIndex(CurrentWaveIndex))
+    {
+        return;
+    }
+
+    // 다음 Wave 시작 전 3초 추가 대기
+    GetWorldTimerManager().SetTimer(
+        WaveTransitionTimerHandle,
+        this,
+        &ASlimeEnemySpawnManager::StartNextWave,
+        WaveStartDelay,
+        false
     );
 }

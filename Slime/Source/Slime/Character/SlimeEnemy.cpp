@@ -222,3 +222,17 @@ void ASlimeEnemy::ResetContactDamage()
 {
 	bCanDealContactDamage = true;
 }
+
+TArray<EPlayerUpgradeType> ASlimeCharacter::GetAvailableUpgrades() const
+{
+	TArray<EPlayerUpgradeType> Upgrades;
+
+	// 모든 직업이 사용할 수 있는 공통 업그레이드
+	Upgrades.Add(EPlayerUpgradeType::Damage);
+	Upgrades.Add(EPlayerUpgradeType::AttackSpeed);
+	Upgrades.Add(EPlayerUpgradeType::AttackRange);
+	Upgrades.Add(EPlayerUpgradeType::MaxHealth);
+	Upgrades.Add(EPlayerUpgradeType::MoveSpeed);
+
+	return Upgrades;
+}
