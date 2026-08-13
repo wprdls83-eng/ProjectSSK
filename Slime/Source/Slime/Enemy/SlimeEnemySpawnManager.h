@@ -8,6 +8,7 @@
 #include "SlimeEnemySpawnManager.generated.h"
 
 class ASlimeEnemy;
+class UUserWidget;
 
 UCLASS()
 class SLIME_API ASlimeEnemySpawnManager : public AActor
@@ -34,6 +35,14 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wave")
     TArray<FWaveData> WaveDataList;
 
+    // Wave 시작 카운트다운 UI 클래스
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Wave|UI")
+    TSubclassOf<UUserWidget> WaveCountdownWidgetClass;
+
+    // 생성된 카운트다운 UI
+    UPROPERTY()
+    TObjectPtr<UUserWidget> WaveCountdownWidget;
+
     // 현재 진행 중인 Wave의 인덱스
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wave")
     int32 CurrentWaveIndex = 0;
@@ -43,6 +52,13 @@ protected:
 
     // 현재 Wave에서 처치한 Enemy 수
     int32 KilledEnemyCount = 0;
+
+    // 현재 카운트다운 숫자
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wave")
+    int32 CountdownValue = 0;
+
+    // 카운트다운 UI 갱신 Timer
+    FTimerHandle CountdownTimerHandle;
 
     // Enemy 생성 타이머
     FTimerHandle SpawnTimerHandle;
@@ -56,6 +72,11 @@ protected:
 protected:
 	virtual void BeginPlay() override;
 
+    // Wave 시작 카운트다운 시작
+    void StartWaveCountdown();
+
+    // 1초마다 카운트다운 숫자 감소
+    void UpdateWaveCountdown();
 
 public:
     // Enemy 여러 마리 생성 처리

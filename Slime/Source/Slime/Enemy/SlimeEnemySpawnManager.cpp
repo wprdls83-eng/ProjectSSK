@@ -16,17 +16,10 @@ ASlimeEnemySpawnManager::ASlimeEnemySpawnManager()
 
 void ASlimeEnemySpawnManager::BeginPlay()
 {
-	Super::BeginPlay();
+    Super::BeginPlay();
 	
-    // 게임 시작 후 3초 기다렸다가
-    // 첫 번째 Wave 시작
-    GetWorldTimerManager().SetTimer(
-        WaveTransitionTimerHandle,
-        this,
-        &ASlimeEnemySpawnManager::StartNextWave,
-        WaveStartDelay,
-        false
-    );
+    // 첫 번째 Wave 시작 전 카운트다운 시작
+    StartWaveCountdown();
 }
 
 void ASlimeEnemySpawnManager::SpawnEnemy()
@@ -460,12 +453,57 @@ void ASlimeEnemySpawnManager::PrepareNextWave()
         return;
     }
 
-    // 다음 Wave 시작 전 3초 추가 대기
-    GetWorldTimerManager().SetTimer(
-        WaveTransitionTimerHandle,
-        this,
-        &ASlimeEnemySpawnManager::StartNextWave,
-        WaveStartDelay,
-        false
+    // 다음 Wave 시작 전 카운트다운 시작
+    StartWaveCountdown();
+}
+
+void ASlimeEnemySpawnManager::StartWaveCountdown()
+{
+    // Wave 시작 대기 시간을 카운트다운 값으로 설정
+    CountdownValue =
+        FMath::CeilToInt(WaveStartDelay);
+
+    // 카운트다운 확인
+    UE_LOG(
+        LogTemp,
+        Warning,
+        TEXT("Wave Countdown : %d"),
+        CountdownValue
     );
+
+    // 1초마다 카운트다운 갱신
+    GetWorldTimerManager().SetTimer(
+        CountdownTimerHandle,
+        this,
+        &ASlimeEnemySpawnManager::UpdateWaveCountdown,
+        1.f,
+        true
+    );
+}
+
+void ASlimeEnemySpawnManager::UpdateWaveCountdown()
+{
+    // 카운트다운 감소
+    CountdownValue--;
+
+    // 아직 시간이 남았다면 현재 숫자 출력
+    if (CountdownValue > 0)
+    {
+        UE_LOG(
+            LogTemp,
+            Warning,
+            TEXT("Wave Countdown : %d"),
+            CountdownValue
+        );
+
+        return;
+    }
+
+    // 카운트다운 종료
+    GetWorldTimerManager().ClearTimer(
+        CountdownTimerHandle
+    );
+
+    // 실제 Wave 시작
+    StartNextWave();
 }

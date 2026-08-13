@@ -203,7 +203,7 @@ void ASlimeWarriorWeapon::DrawAttackDebug()
 		Center + LeftDirection * AttackRange,
 		FColor::Red,
 		false,
-		0.5f,
+		2.5f,
 		0,
 		3.f
 	);
@@ -215,7 +215,7 @@ void ASlimeWarriorWeapon::DrawAttackDebug()
 		Center + RightDirection * AttackRange,
 		FColor::Red,
 		false,
-		0.5f,
+		2.5f,
 		0,
 		3.f
 	);
@@ -256,7 +256,7 @@ void ASlimeWarriorWeapon::DrawAttackDebug()
 			CurrentPoint,
 			FColor::Red,
 			false,
-			0.5f,
+			2.5f,
 			0,
 			3.f
 		);

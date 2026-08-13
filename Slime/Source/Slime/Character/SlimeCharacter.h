@@ -106,6 +106,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Player|Upgrade")
 	float MoveSpeedUpgradeAmount = 30.f;
 
+	// 직업 선택 화면에서 사용하는 Preview 캐릭터인지 여부
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player|Preview")
+	bool bIsPreviewCharacter = false;
+
 	// 현재 플레이어가 사망했는지 여부
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Health")
 	bool bIsDead = false;
@@ -194,6 +198,9 @@ public:
 
 	// 현재 직업의 업그레이드 목록에서 중복 없이 랜덤 3개 생성
 	void GenerateUpgradeChoices();
+
+	// GameMode에서 Possess가 끝난 후 플레이어 초기화
+	void InitializePlayer();
 
 	// 현재 최대 체력 반환
 	float GetMaxHealth() const { return MaxHealth; }

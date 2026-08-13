@@ -84,40 +84,16 @@ void ASlimeCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	// 직업 선택 화면용 Preview 캐릭터라면 게임 플레이용 초기화는 실행하지 않음
+	if (bIsPreviewCharacter)
+	{
+		return;
+	}
+
 	// 현재 체력을 최대 체력으로 초기화
 	CurrentHealth = MaxHealth;
 
-	// 현재 캐릭터를 조종하는 PlayerController를 가져온다.
-	APlayerController* PlayerController = Cast<APlayerController>(GetController());
-
-	if (IsValid(PlayerController) == false)
-	{
-		return;
-	}
-
-	// PlayerController가 가진 LocalPlayer를 가져온다.
-	ULocalPlayer* LocalPlayer = PlayerController->GetLocalPlayer();
-
-	if (IsValid(LocalPlayer) == false)
-	{
-		return;
-	}
-
-	// LocalPlayer에서 Enhanced Input Subsystem을 가져온다.
-	UEnhancedInputLocalPlayerSubsystem* InputSubsystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
-
-	if (IsValid(InputSubsystem) == false)
-	{
-		return;
-	}
-
-	// 블루프린트에서 지정한 IMC_Player를 등록한다.
-	if (PlayerMappingContext)
-	{
-		InputSubsystem->AddMappingContext(PlayerMappingContext, 0);
-	}
-
-	// 무기 클래스 설정 실패했을 때
+	// 무기 클래스가 설정되지 않았다면 종료
 	if (!WeaponClass)
 	{
 		return;
@@ -128,7 +104,7 @@ void ASlimeCharacter::BeginPlay()
 	SpawnParameters.Owner = this;
 	SpawnParameters.Instigator = this;
 
-	// 플레이어의 현재 위치와 회전에 무기 생성
+	// 플레이어 위치에 무기 생성
 	EquippedWeapon = GetWorld()->SpawnActor<ASlimeWeaponBase>(
 		WeaponClass,
 		GetActorLocation(),
@@ -136,47 +112,67 @@ void ASlimeCharacter::BeginPlay()
 		SpawnParameters
 	);
 
-	// 무기 생성에 실패했다면 이후 코드 실행 중지
 	if (!IsValid(EquippedWeapon))
 	{
 		return;
 	}
 
-	// 생성된 무기를 플레이어의 루트 컴포넌트에 부착
+	// 생성된 무기를 플레이어에게 부착
 	EquippedWeapon->AttachToComponent(
 		GetRootComponent(),
 		FAttachmentTransformRules::SnapToTargetNotIncludingScale
 	);
 
-	// 무기가 플레이어 몸 중앙에 겹치지 않도록 상대 위치 조정
 	EquippedWeapon->SetActorRelativeLocation(
 		FVector(0.f, 0.f, 50.f)
 	);
+}
 
-	// Player HUD 클래스가 설정되어 있다면
+void ASlimeCharacter::InitializePlayer()
+{
+	// 현재 캐릭터를 조종하는 PlayerController 가져오기
+	APlayerController* PlayerController =
+		Cast<APlayerController>(GetController());
+
+	if (!IsValid(PlayerController))
+	{
+		return;
+	}
+
+	// Enhanced Input 설정
+	ULocalPlayer* LocalPlayer =
+		PlayerController->GetLocalPlayer();
+
+	if (IsValid(LocalPlayer))
+	{
+		UEnhancedInputLocalPlayerSubsystem* InputSubsystem =
+			LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
+
+		if (IsValid(InputSubsystem) && PlayerMappingContext)
+		{
+			InputSubsystem->AddMappingContext(
+				PlayerMappingContext,
+				0
+			);
+		}
+	}
+
+	// Player HUD 생성
 	if (PlayerHUDWidgetClass)
 	{
-		// 현재 플레이어 컨트롤러 가져오기
-		APlayerController* HUDPlayerController =
-			Cast<APlayerController>(GetController());
+		PlayerHUDWidget =
+			CreateWidget<USlimePlayerHUDWidget>(
+				PlayerController,
+				PlayerHUDWidgetClass
+			);
 
-		// 플레이어 컨트롤러가 유효하지 않다면 종료
-		if (!IsValid(HUDPlayerController))
+		if (IsValid(PlayerHUDWidget))
 		{
-			return;
+			PlayerHUDWidget->AddToViewport();
+
+			// 현재 데이터로 HUD 초기화
+			UpdatePlayerHUD();
 		}
-
-		// Player HUD 생성
-		PlayerHUDWidget = CreateWidget<USlimePlayerHUDWidget>(
-			HUDPlayerController,
-			PlayerHUDWidgetClass
-		);
-
-		// HUD를 화면에 표시
-		PlayerHUDWidget->AddToViewport();
-
-		// 현재 플레이어 데이터로 HUD 초기화
-		UpdatePlayerHUD();
 	}
 }
 
@@ -257,7 +253,7 @@ void ASlimeCharacter::Move(const FInputActionValue& Value)
 
 void ASlimeCharacter::UseSpecialAbility()
 {
-
+	// 구현은 자식에서
 }
 
 void ASlimeCharacter::AddExp(int32 ExpAmount)

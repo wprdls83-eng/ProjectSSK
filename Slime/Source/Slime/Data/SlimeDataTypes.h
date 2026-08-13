@@ -1,4 +1,6 @@
-﻿#pragma once
+﻿// SlimeDataTypes.H
+
+#pragma once
 
 #include "CoreMinimal.h"
 #include "SlimeDataTypes.generated.h"

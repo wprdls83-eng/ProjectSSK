@@ -141,6 +141,18 @@ void ASlimeEnemy::FinishDeath()
 			SpawnLocation,
 			FRotator::ZeroRotator
 		);
+
+		ASlimeExpOrbBase* ExpOrb =
+			GetWorld()->SpawnActor<ASlimeExpOrbBase>(
+				ExpOrbClass,
+				GetActorLocation(),
+				FRotator::ZeroRotator
+			);
+
+		if (IsValid(ExpOrb))
+		{
+			ExpOrb->SetExpAmount(ExpReward);
+		}
 	}
 	else
 	{

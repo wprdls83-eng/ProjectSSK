@@ -92,13 +92,6 @@ void ASlimeExpOrbBase::OnExpOrbOverlap(
         return;
     }
 
-    UE_LOG(
-        LogTemp,
-        Warning,
-        TEXT("경험치 오브 획득 | Exp: %d"),
-        ExpAmount
-    );
-
     PlayerCharacter->AddExp(ExpAmount);
 
     // 획득한 경험치 오브 제거
