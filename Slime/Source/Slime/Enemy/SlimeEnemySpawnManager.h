@@ -18,6 +18,18 @@ class SLIME_API ASlimeEnemySpawnManager : public AActor
 public:	
 	ASlimeEnemySpawnManager();
 
+    // 현재 Wave의 남은 시간 반환
+    UFUNCTION(BlueprintPure, Category = "Wave|UI")
+    float GetRemainingWaveTime() const;
+
+    // 현재 Wave에서 남아 있는 Enemy 수 반환
+    UFUNCTION(BlueprintPure, Category = "Wave|UI")
+    int32 GetRemainingEnemyCount() const;
+
+    // 현재 Wave의 전체 Enemy 수 반환
+    UFUNCTION(BlueprintPure, Category = "Wave|UI")
+    int32 GetTotalEnemyCount() const;
+
 protected:
     // 플레이어 주변 생성 반경
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawn")
@@ -30,6 +42,13 @@ protected:
     // Wave Clear 이후 대기 시간
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wave")
     float WaveClearDelay = 3.f;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wave|UI")
+    bool bIsWaveActive = false;
+
+    // 마지막 Wave가 조기 클리어에 성공했는지 여부
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wave|UI")
+    bool bLastEarlyClearSuccess = false;
 
     // Wave별 설정 데이터를 저장하는 배열
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wave")
@@ -48,6 +67,7 @@ protected:
     int32 CurrentWaveIndex = 0;
 
     // 현재 Wave에서 지금까지 생성한 Enemy 수
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Wave|UI")
     int32 SpawnedEnemyCount = 0;
 
     // 현재 Wave에서 처치한 Enemy 수
@@ -56,6 +76,10 @@ protected:
     // 현재 카운트다운 숫자
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wave")
     int32 CountdownValue = 0;
+
+    // 마지막 조기 클리어 보상 이름
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wave|UI")
+    FString LastEarlyClearRewardText;
 
     // 카운트다운 UI 갱신 Timer
     FTimerHandle CountdownTimerHandle;
@@ -105,4 +129,11 @@ public:
 
     // Wave Clear 대기가 끝난 후 다음 Wave 시작 전 대기 시작
     void PrepareNextWave();
+
+    // Wave 결과 UI 표시 요청
+    UFUNCTION(BlueprintImplementableEvent, Category = "Wave|UI")
+    void ShowWaveResultUI(
+        bool bSuccess,
+        const FString& RewardText
+    );
 };

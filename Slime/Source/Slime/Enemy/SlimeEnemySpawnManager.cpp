@@ -179,7 +179,9 @@ bool ASlimeEnemySpawnManager::SpawnSingleEnemy()
 }
 
 void ASlimeEnemySpawnManager::StartWave()
-{
+{   
+    bIsWaveActive = true;
+
     // 현재 Wave의 생성 수 초기화
     SpawnedEnemyCount = 0;
 
@@ -220,7 +222,21 @@ void ASlimeEnemySpawnManager::StartWave()
 }
 
 void ASlimeEnemySpawnManager::EndWave()
-{
+{   
+    bIsWaveActive = false;
+
+    // 제한 시간 종료 = 조기 클리어 실패
+    bLastEarlyClearSuccess = false;
+
+    // 실패했으므로 보상 문구 제거
+    LastEarlyClearRewardText.Empty();
+
+    // 조기 클리어 실패 UI 표시
+    ShowWaveResultUI(
+        false,
+        TEXT("")
+    );
+
     // Enemy Spawn 중지
     GetWorldTimerManager().ClearTimer(SpawnTimerHandle);
 
@@ -317,16 +333,10 @@ void ASlimeEnemySpawnManager::NotifyEnemyKilled()
 
 void ASlimeEnemySpawnManager::ClearWaveEarly()
 {   
-    // 조기 클리어 확인용 메시지
-    GEngine->AddOnScreenDebugMessage(
-        -1,
-        3.f,
-        FColor::Green,
-        FString::Printf(
-            TEXT("Wave %d 조기 클리어!"),
-            CurrentWaveIndex + 1
-        )
-    );
+    bIsWaveActive = false;
+
+    // 조기 클리어 성공 기록
+    bLastEarlyClearSuccess = true;
 
     // Spawn Timer 중지
     GetWorldTimerManager().ClearTimer(SpawnTimerHandle);
@@ -336,6 +346,12 @@ void ASlimeEnemySpawnManager::ClearWaveEarly()
 
     // Early Clear 보상 지급
     GiveEarlyClearReward();
+
+    // 조기 클리어 성공 UI 표시
+    ShowWaveResultUI(
+        true,
+        LastEarlyClearRewardText
+    );
 
     // 다음 Wave로 이동
     CurrentWaveIndex++;
@@ -410,16 +426,8 @@ void ASlimeEnemySpawnManager::GiveEarlyClearReward()
         break;
     }
 
-    // 테스트용 화면 출력
-    GEngine->AddOnScreenDebugMessage(
-        -1,
-        3.f,
-        FColor::Yellow,
-        FString::Printf(
-            TEXT("Early Clear Reward : %s"),
-            *RewardName
-        )
-    );
+    // UI에서 표시할 조기 클리어 보상 저장
+    LastEarlyClearRewardText = RewardName;
 }
 
 void ASlimeEnemySpawnManager::StartNextWave()
@@ -506,4 +514,40 @@ void ASlimeEnemySpawnManager::UpdateWaveCountdown()
 
     // 실제 Wave 시작
     StartNextWave();
+}
+
+float ASlimeEnemySpawnManager::GetRemainingWaveTime() const
+{
+    // Wave가 진행 중이 아니라면 0 반환
+    if (!bIsWaveActive)
+    {
+        return 0.f;
+    }
+
+    // 현재 Wave 종료 Timer의 남은 시간 반환
+    return GetWorldTimerManager().GetTimerRemaining(WaveTimerHandle);
+}
+
+int32 ASlimeEnemySpawnManager::GetTotalEnemyCount() const
+{
+    // 현재 Wave 인덱스가 유효하지 않으면 0 반환
+    if (!WaveDataList.IsValidIndex(CurrentWaveIndex))
+    {
+        return 0;
+    }
+
+    // 현재 Wave에서 생성할 전체 Enemy 수 반환
+    return WaveDataList[CurrentWaveIndex].TotalEnemies;
+}
+
+int32 ASlimeEnemySpawnManager::GetRemainingEnemyCount() const
+{
+    // 현재 Wave의 전체 Enemy 수 가져오기
+    const int32 TotalEnemyCount = GetTotalEnemyCount();
+
+    // 전체 Enemy 수에서 처치한 Enemy 수를 빼서 남은 Enemy 수 계산
+    return FMath::Max(
+        TotalEnemyCount - KilledEnemyCount,
+        0
+    );
 }
