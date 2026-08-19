@@ -228,4 +228,9 @@ public:
 	// 업그레이드 종류에 맞는 설명 반환
 	UFUNCTION(BlueprintPure, Category = "Upgrade")
 	FText GetUpgradeDescription(EPlayerUpgradeType UpgradeType) const;
+
+	// 조기 클리어 보상의 변경 수치를 UI용 문자열로 반환
+	FString GetEarlyClearRewardDescription(
+		EEarlyClearRewardType RewardType
+	) const;
 };

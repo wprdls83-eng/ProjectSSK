@@ -75,6 +75,26 @@ float ASlimeEnemy::GetContactDamage() const
 	return AttackDamage;
 }
 
+void ASlimeEnemy::ApplyWaveStatMultiplier(
+	float HealthMultiplier,
+	float DamageMultiplier,
+	float MoveSpeedMultiplier
+)
+{
+	// 최대 체력과 현재 체력에 Wave 체력 배율 적용
+	MaxHealth *= HealthMultiplier;
+	CurrentHealth = MaxHealth;
+
+	// 공격력에 Wave 공격력 배율 적용
+	AttackDamage *= DamageMultiplier;
+
+	// 이동속도에 Wave 이동속도 배율 적용
+	if (GetCharacterMovement())
+	{
+		GetCharacterMovement()->MaxWalkSpeed *= MoveSpeedMultiplier;
+	}
+}
+
 void ASlimeEnemy::TakeDamageFromProjectile(float DamageAmount)
 {
 	// 이미 죽은 Enemy라면 추가 데미지를 받지 않음

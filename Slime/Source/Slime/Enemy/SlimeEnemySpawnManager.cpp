@@ -174,6 +174,16 @@ bool ASlimeEnemySpawnManager::SpawnSingleEnemy()
             FRotator::ZeroRotator
         );
 
+    // Enemy 생성에 성공했다면 현재 Wave 난이도 배율 적용
+    if (IsValid(SpawnedEnemy))
+    {
+        SpawnedEnemy->ApplyWaveStatMultiplier(
+            CurrentWaveData.EnemyHealthMultiplier,
+            CurrentWaveData.EnemyDamageMultiplier,
+            CurrentWaveData.EnemyMoveSpeedMultiplier
+        );
+    }
+
     // 실제 생성 성공 여부 반환
     return IsValid(SpawnedEnemy);
 }
@@ -393,41 +403,17 @@ void ASlimeEnemySpawnManager::GiveEarlyClearReward()
         return;
     }
 
-    // 선택된 보상을 실제 플레이어에게 적용
-    PlayerCharacter->ApplyEarlyClearReward(RewardType);
+    // 보상을 적용하기 전에 현재 능력치를 기준으로
+    // UI에 표시할 변경 수치를 생성
+    LastEarlyClearRewardText =
+        PlayerCharacter->GetEarlyClearRewardDescription(
+            RewardType
+        );
 
-    // 화면에 표시할 보상 이름
-    FString RewardName;
-
-    switch (RewardType)
-    {
-    case EEarlyClearRewardType::Damage:
-        RewardName = TEXT("Damage UP");
-        break;
-
-    case EEarlyClearRewardType::AttackSpeed:
-        RewardName = TEXT("Attack Speed UP");
-        break;
-
-    case EEarlyClearRewardType::AttackRange:
-        RewardName = TEXT("Attack Range UP");
-        break;
-
-    case EEarlyClearRewardType::MaxHealth:
-        RewardName = TEXT("Max Health UP");
-        break;
-
-    case EEarlyClearRewardType::MoveSpeed:
-        RewardName = TEXT("Move Speed UP");
-        break;
-
-    case EEarlyClearRewardType::Exp:
-        RewardName = TEXT("EXP +50");
-        break;
-    }
-
-    // UI에서 표시할 조기 클리어 보상 저장
-    LastEarlyClearRewardText = RewardName;
+    // 실제 보상 적용
+    PlayerCharacter->ApplyEarlyClearReward(
+        RewardType
+    );
 }
 
 void ASlimeEnemySpawnManager::StartNextWave()

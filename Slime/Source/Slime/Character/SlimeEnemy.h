@@ -42,6 +42,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy|Attack")
 	float ContactDamageCooldown = 1.f;
 
+	// 현재 Wave의 난이도 배율을 Enemy 능력치에 적용
+	void ApplyWaveStatMultiplier(
+		float HealthMultiplier,
+		float DamageMultiplier,
+		float MoveSpeedMultiplier
+	);
+
 	// 현재 접촉 데미지를 줄 수 있는지
 	bool bCanDealContactDamage = true;
 

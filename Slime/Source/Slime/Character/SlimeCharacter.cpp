@@ -1042,6 +1042,117 @@ FText ASlimeCharacter::GetUpgradeDescription(
 	}
 }
 
+FString ASlimeCharacter::GetEarlyClearRewardDescription(
+	EEarlyClearRewardType RewardType
+) const
+{
+	switch (RewardType)
+	{
+	case EEarlyClearRewardType::Damage:
+	{
+		if (!IsValid(EquippedWeapon))
+		{
+			return TEXT("Damage UP");
+		}
+
+		const float Current =
+			EquippedWeapon->GetDamage();
+
+		const float Amount =
+			EquippedWeapon->GetDamageUpgradeAmount();
+
+		return FString::Printf(
+			TEXT("Damage\n%.0f → %.0f (+%.0f)"),
+			Current,
+			Current + Amount,
+			Amount
+		);
+	}
+
+	case EEarlyClearRewardType::AttackSpeed:
+	{
+		if (!IsValid(EquippedWeapon))
+		{
+			return TEXT("Attack Speed UP");
+		}
+
+		const float Current =
+			EquippedWeapon->GetAttackInterval();
+
+		const float Amount =
+			EquippedWeapon->GetAttackIntervalUpgradeAmount();
+
+		const float Result =
+			FMath::Max(
+				0.1f,
+				Current - Amount
+			);
+
+		return FString::Printf(
+			TEXT("Attack Speed\n%.1f → %.1f (-%.1f)"),
+			Current,
+			Result,
+			Current - Result
+		);
+	}
+
+	case EEarlyClearRewardType::AttackRange:
+	{
+		if (!IsValid(EquippedWeapon))
+		{
+			return TEXT("Attack Range UP");
+		}
+
+		const float Current =
+			EquippedWeapon->GetAttackRange();
+
+		const float Amount =
+			EquippedWeapon->GetAttackRangeUpgradeAmount();
+
+		return FString::Printf(
+			TEXT("Attack Range\n%.0f → %.0f (+%.0f)"),
+			Current,
+			Current + Amount,
+			Amount
+		);
+	}
+
+	case EEarlyClearRewardType::MaxHealth:
+	{
+		const float Current = MaxHealth;
+		const float Amount = 20.f;
+
+		return FString::Printf(
+			TEXT("Max Health\n%.0f → %.0f (+%.0f)"),
+			Current,
+			Current + Amount,
+			Amount
+		);
+	}
+
+	case EEarlyClearRewardType::MoveSpeed:
+	{
+		const float Current =
+			GetCharacterMovement()->MaxWalkSpeed;
+
+		const float Amount = 30.f;
+
+		return FString::Printf(
+			TEXT("Move Speed\n%.0f → %.0f (+%.0f)"),
+			Current,
+			Current + Amount,
+			Amount
+		);
+	}
+
+	case EEarlyClearRewardType::Exp:
+		return TEXT("EXP +50");
+
+	default:
+		return TEXT("");
+	}
+}
+
 void ASlimeCharacter::ApplyUpgrade(EPlayerUpgradeType UpgradeType)
 {
 	switch (UpgradeType)

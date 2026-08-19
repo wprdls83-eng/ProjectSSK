@@ -93,6 +93,18 @@ struct FWaveData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 MaxAliveEnemies = 10;
 
+	// Wave에 따른 Enemy 체력 배율
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float EnemyHealthMultiplier = 1.0f;
+
+	// Wave에 따른 Enemy 공격력 배율
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float EnemyDamageMultiplier = 1.0f;
+
+	// Wave에 따른 Enemy 이동속도 배율
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float EnemyMoveSpeedMultiplier = 1.0f;
+
 	// 현재 Wave에서 등장할 Enemy와 Spawn 가중치
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FEnemySpawnData> EnemySpawnDataList;
