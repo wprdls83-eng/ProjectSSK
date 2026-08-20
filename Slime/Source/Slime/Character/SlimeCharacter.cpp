@@ -341,7 +341,7 @@ void ASlimeCharacter::ShowLevelUpUI()
 	// 화면에서 제거된 기존 UI를 다시 표시
 	if (!LevelUpWidget->IsInViewport())
 	{
-		LevelUpWidget->AddToViewport();
+		LevelUpWidget->AddToViewport(100);
 	}
 
 	// 게임 일시정지
@@ -1294,4 +1294,18 @@ void ASlimeCharacter::ApplyUpgrade(EPlayerUpgradeType UpgradeType)
 
 	// 업그레이드 적용 후 HUD 갱신
 	UpdatePlayerHUD();
+}
+
+TArray<EPlayerUpgradeType> ASlimeCharacter::GetAvailableUpgrades() const
+{
+	TArray<EPlayerUpgradeType> Upgrades;
+
+	// 모든 직업이 사용할 수 있는 공통 업그레이드
+	Upgrades.Add(EPlayerUpgradeType::Damage);
+	Upgrades.Add(EPlayerUpgradeType::AttackSpeed);
+	Upgrades.Add(EPlayerUpgradeType::AttackRange);
+	Upgrades.Add(EPlayerUpgradeType::MaxHealth);
+	Upgrades.Add(EPlayerUpgradeType::MoveSpeed);
+
+	return Upgrades;
 }

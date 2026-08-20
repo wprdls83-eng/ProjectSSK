@@ -156,12 +156,6 @@ void ASlimeEnemy::FinishDeath()
 		SpawnLocation.Z += 30.f;
 
 		// 경험치 오브 생성
-		GetWorld()->SpawnActor<ASlimeExpOrbBase>(
-			ExpOrbClass,
-			SpawnLocation,
-			FRotator::ZeroRotator
-		);
-
 		ASlimeExpOrbBase* ExpOrb =
 			GetWorld()->SpawnActor<ASlimeExpOrbBase>(
 				ExpOrbClass,
@@ -253,18 +247,4 @@ void ASlimeEnemy::OnEnemyHit(
 void ASlimeEnemy::ResetContactDamage()
 {
 	bCanDealContactDamage = true;
-}
-
-TArray<EPlayerUpgradeType> ASlimeCharacter::GetAvailableUpgrades() const
-{
-	TArray<EPlayerUpgradeType> Upgrades;
-
-	// 모든 직업이 사용할 수 있는 공통 업그레이드
-	Upgrades.Add(EPlayerUpgradeType::Damage);
-	Upgrades.Add(EPlayerUpgradeType::AttackSpeed);
-	Upgrades.Add(EPlayerUpgradeType::AttackRange);
-	Upgrades.Add(EPlayerUpgradeType::MaxHealth);
-	Upgrades.Add(EPlayerUpgradeType::MoveSpeed);
-
-	return Upgrades;
 }

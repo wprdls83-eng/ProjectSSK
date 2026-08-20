@@ -1,6 +1,7 @@
 ﻿// SlimeEnemySpawnManager.cpp
 
 #include "Slime/Enemy/SlimeEnemySpawnManager.h"
+#include "Slime/Enemy/SlimeBoss.h"
 #include "Slime/Character/SlimeEnemy.h"
 #include "Slime/Character/SlimeCharacter.h"
 
@@ -271,9 +272,10 @@ void ASlimeEnemySpawnManager::EndWave()
     // 다음 Wave로 이동
     CurrentWaveIndex++;
 
-    // 다음 Wave가 존재하지 않는다면 종료
+    // 더 이상 일반 Wave가 없다면 Boss 생성
     if (!WaveDataList.IsValidIndex(CurrentWaveIndex))
     {
+        SpawnBoss();
         return;
     }
 
@@ -366,9 +368,10 @@ void ASlimeEnemySpawnManager::ClearWaveEarly()
     // 다음 Wave로 이동
     CurrentWaveIndex++;
 
-    // 다음 Wave가 존재하지 않는다면 종료
+    // 더 이상 일반 Wave가 없다면 Boss 생성
     if (!WaveDataList.IsValidIndex(CurrentWaveIndex))
     {
+        SpawnBoss();
         return;
     }
 
@@ -500,6 +503,69 @@ void ASlimeEnemySpawnManager::UpdateWaveCountdown()
 
     // 실제 Wave 시작
     StartNextWave();
+}
+
+void ASlimeEnemySpawnManager::SpawnBoss()
+{
+    // Boss를 이미 생성했다면 중복 생성 방지
+    if (bBossSpawned)
+    {
+        return;
+    }
+
+    // Boss 클래스가 설정되지 않았다면 종료
+    if (!BossClass)
+    {
+        return;
+    }
+
+    // 현재 플레이어 가져오기
+    ACharacter* PlayerCharacter =
+        UGameplayStatics::GetPlayerCharacter(this, 0);
+
+    if (!IsValid(PlayerCharacter))
+    {
+        return;
+    }
+
+    // 플레이어 위치 가져오기
+    const FVector PlayerLocation =
+        PlayerCharacter->GetActorLocation();
+
+    // 우선 테스트를 위해 플레이어 앞쪽에 Boss 생성
+    FVector BossSpawnLocation =
+        PlayerLocation
+        + FVector(BossSpawnDistance, 0.f, 0.f);
+
+    // Boss 생성
+    ASlimeBoss* SpawnedBoss =
+        GetWorld()->SpawnActor<ASlimeBoss>(
+            BossClass,
+            BossSpawnLocation,
+            FRotator::ZeroRotator
+        );
+
+    // 생성 성공
+    if (IsValid(SpawnedBoss))
+    {
+        bBossSpawned = true;
+    }
+}
+
+void ASlimeEnemySpawnManager::NotifyBossKilled()
+{
+    // Boss가 더 이상 존재하지 않는 상태로 변경
+    bBossSpawned = false;
+
+    // 이후 Boss HP UI 제거,
+    // Game Clear UI 등을 여기에서 처리할 예정
+
+    GEngine->AddOnScreenDebugMessage(
+        -1,
+        5.f,
+        FColor::Yellow,
+        TEXT("BOSS DEFEATED! GAME CLEAR!")
+    );
 }
 
 float ASlimeEnemySpawnManager::GetRemainingWaveTime() const

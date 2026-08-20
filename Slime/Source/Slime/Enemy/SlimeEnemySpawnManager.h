@@ -8,6 +8,7 @@
 #include "SlimeEnemySpawnManager.generated.h"
 
 class ASlimeEnemy;
+class ASlimeBoss;
 class UUserWidget;
 
 UCLASS()
@@ -35,6 +36,10 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawn")
     float SpawnRadius = 1500.f;
 
+    // 플레이어로부터 Boss가 생성될 거리
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss")
+    float BossSpawnDistance = 1200.f;
+
     // 실제 Wave 시작 전 대기 시간
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wave")
     float WaveStartDelay = 3.f;
@@ -43,8 +48,13 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wave")
     float WaveClearDelay = 3.f;
 
+    // Wave 시작 확인
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wave|UI")
     bool bIsWaveActive = false;
+
+    // Boss가 이미 생성되었는지 확인
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss")
+    bool bBossSpawned = false;
 
     // 마지막 Wave가 조기 클리어에 성공했는지 여부
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wave|UI")
@@ -57,6 +67,10 @@ protected:
     // Wave 시작 카운트다운 UI 클래스
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Wave|UI")
     TSubclassOf<UUserWidget> WaveCountdownWidgetClass;
+
+    // 모든 일반 Wave 종료 후 생성할 Boss 클래스
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss")
+    TSubclassOf<ASlimeBoss> BossClass;
 
     // 생성된 카운트다운 UI
     UPROPERTY()
@@ -102,6 +116,9 @@ protected:
     // 1초마다 카운트다운 숫자 감소
     void UpdateWaveCountdown();
 
+    // 모든 일반 Wave가 끝난 후 Boss 생성
+    void SpawnBoss();
+
 public:
     // Enemy 여러 마리 생성 처리
     void SpawnEnemy();
@@ -129,6 +146,9 @@ public:
 
     // Wave Clear 대기가 끝난 후 다음 Wave 시작 전 대기 시작
     void PrepareNextWave();
+
+    // Boss가 처치되었을 때 호출
+    void NotifyBossKilled();
 
     // Wave 결과 UI 표시 요청
     UFUNCTION(BlueprintImplementableEvent, Category = "Wave|UI")
