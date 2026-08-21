@@ -226,9 +226,20 @@ void ASlimeEnemy::OnEnemyHit(
 		return;
 	}
 
+	// 현재 Enemy가 적용할 접촉 데미지를 가져옴
+	const float ContactDamage =
+		GetContactDamage();
+
+	// 접촉 데미지가 0 이하라면 데미지를 적용하지 않음
+	// Boss가 돌진 중일 때 일반 접촉 데미지를 막는 데 사용
+	if (ContactDamage <= 0.f)
+	{
+		return;
+	}
+
 	// 기존 플레이어 피격 함수 재사용
 	PlayerCharacter->TakeDamageFromEnemy(
-		GetContactDamage()
+		ContactDamage
 	);
 
 	// 연속 데미지 방지
