@@ -112,6 +112,9 @@ void ASlimeEnemy::TakeDamageFromProjectile(float DamageAmount)
 	// 현재 체력 감소
 	CurrentHealth -= DamageAmount;
 
+	// 체력이 변경되었으므로 추가 처리 실행
+	OnHealthChanged();
+
 	UE_LOG(
 		LogTemp,
 		Warning,
@@ -258,4 +261,9 @@ void ASlimeEnemy::OnEnemyHit(
 void ASlimeEnemy::ResetContactDamage()
 {
 	bCanDealContactDamage = true;
+}
+
+void ASlimeEnemy::OnHealthChanged()
+{
+	// 기본 Enemy는 체력 변경 시 추가 처리 없음
 }

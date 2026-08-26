@@ -68,7 +68,24 @@ void ASlimeBoss::Tick(float DeltaTime)
 }
 
 void ASlimeBoss::Die()
-{
+{	
+	// Boss가 사망하면 진행 중인 모든 공격 Timer 제거
+	GetWorldTimerManager().ClearTimer(
+		BossAttackCooldownTimerHandle
+	);
+
+	GetWorldTimerManager().ClearTimer(
+		MeleeWarningTimerHandle
+	);
+
+	GetWorldTimerManager().ClearTimer(
+		ChargeWarningTimerHandle
+	);
+
+	GetWorldTimerManager().ClearTimer(
+		ChargeDurationTimerHandle
+	);
+
     // 현재 월드의 Enemy Spawn Manager 가져오기
     ASlimeEnemySpawnManager* SpawnManager =
         Cast<ASlimeEnemySpawnManager>(
@@ -77,6 +94,10 @@ void ASlimeBoss::Die()
                 ASlimeEnemySpawnManager::StaticClass()
             )
         );
+
+	// 공격 및 돌진 상태 종료
+	bIsAttacking = false;
+	bIsCharging = false;
 
     // Spawn Manager에게 Boss가 처치됐다고 알림
     if (IsValid(SpawnManager))
@@ -469,6 +490,73 @@ void ASlimeBoss::EndCharge()
 		Warning,
 		TEXT("Boss Charge End!")
 	);
+}
+
+void ASlimeBoss::CheckPhaseTwo()
+{
+	// 이미 2페이즈라면 종료
+	if (bIsPhaseTwo)
+	{
+		return;
+	}
+
+	// Boss 체력이 설정한 비율 이하인지 확인
+	if (GetBossHealthPercent() <= PhaseTwoHealthPercent)
+	{
+		EnterPhaseTwo();
+	}
+}
+
+void ASlimeBoss::EnterPhaseTwo()
+{
+	// 이미 2페이즈라면 중복 실행 방지
+	if (bIsPhaseTwo)
+	{
+		return;
+	}
+
+	// 2페이즈 상태로 변경
+	bIsPhaseTwo = true;
+
+	// 공격 간격 감소
+	BossAttackCooldown *=
+		PhaseTwoAttackCooldownMultiplier;
+
+	// 돌진 속도 증가
+	ChargeSpeed *=
+		PhaseTwoChargeSpeedMultiplier;
+
+	// 근접 공격 예고시간 감소
+	MeleeWarningTime *=
+		PhaseTwoMeleeWarningMultiplier;
+
+	// 2페이즈 진입 로그
+	UE_LOG(
+		LogTemp,
+		Warning,
+		TEXT("Boss Phase 2 Start!")
+	);
+
+	// 2페이즈 진입을 화면에서 확인하기 위한 테스트 메시지
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(
+			-1,
+			3.f,
+			FColor::Red,
+			TEXT("BOSS PHASE 2!")
+		);
+	}
+
+}
+
+void ASlimeBoss::OnHealthChanged()
+{
+	// 부모의 체력 변경 처리 실행
+	Super::OnHealthChanged();
+
+	// Boss의 2페이즈 진입 조건 확인
+	CheckPhaseTwo();
 }
 
 float ASlimeBoss::GetBossCurrentHealth() const

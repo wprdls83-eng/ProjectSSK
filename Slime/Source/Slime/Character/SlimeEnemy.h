@@ -86,6 +86,11 @@ protected:
 	// 실제 Enemy 사망 마무리 처리
 	// EXP 드랍 + Wave 처치 알림 + Enemy 제거
 	void FinishDeath();
+
+	// 체력이 변경되었을 때 호출
+	// 자식 Enemy가 필요한 추가 처리를 할 수 있도록 virtual로 구성
+	virtual void OnHealthChanged();
+
 public:
 	// Projectile에게 피해를 받는 함수
 	void TakeDamageFromProjectile(float DamageAmount);

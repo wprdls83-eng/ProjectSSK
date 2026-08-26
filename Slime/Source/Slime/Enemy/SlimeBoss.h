@@ -23,6 +23,30 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss|Attack")
 	float BossAttackCooldown = 3.f;
 
+	// 2페이즈가 시작되는 체력, 0.5 = 최대 체력의 50%
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss|Phase")
+	float PhaseTwoHealthPercent = 0.5f;
+
+	// 2페이즈 공격 쿨타임 배율
+	// 0.7 = 기존 쿨타임의 70%
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss|Phase")
+	float PhaseTwoAttackCooldownMultiplier = 0.7f;
+
+	// 2페이즈 돌진 속도 배율
+	// 1.3 = 기존 속도의 130%
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss|Phase")
+	float PhaseTwoChargeSpeedMultiplier = 1.3f;
+
+	// 2페이즈 근접 공격 예고시간 배율
+	// 0.7 = 기존 예고시간의 70%
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss|Phase")
+	float PhaseTwoMeleeWarningMultiplier = 0.7f;
+
+	// 현재 2페이즈에 진입했는지
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|Phase")
+	bool bIsPhaseTwo = false;
+
+
 // =========================
 // Boss 근접 범위 공격
 // =========================
@@ -103,6 +127,16 @@ protected:
 	// Boss 접촉 데미지 반환
 	// 돌진 중에는 일반 접촉 데미지를 막음
 	virtual float GetContactDamage() const override;
+
+	// Boss 체력이 변경되었을 때 호출
+	virtual void OnHealthChanged() override;
+
+	// 현재 체력을 확인하여 2페이즈 진입 여부 검사
+	void CheckPhaseTwo();
+
+	// Boss 2페이즈 시작
+	void EnterPhaseTwo();
+
 
 // =========================
 // Boss 근접 범위 공격
