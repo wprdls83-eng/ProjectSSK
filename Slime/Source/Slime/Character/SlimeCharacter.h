@@ -15,6 +15,7 @@ class UInputAction;
 class ASlimeWeaponBase;
 class USlimePlayerHUDWidget;
 class USlimeGameOverWidget;
+class UAnimMontage;
 struct FInputActionValue;
 
 UCLASS()
@@ -85,6 +86,10 @@ protected:
 	// 이번 레벨업에서 UI에 표시할 업그레이드 3개
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Upgrade")
 	TArray<EPlayerUpgradeType> CurrentUpgradeChoices;
+
+	// 현재 직업이 자동 공격할 때 재생할 공격 몽타주
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation")
+	TObjectPtr<UAnimMontage> AttackMontage;
 
 	// 최대 체력
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player")
@@ -201,6 +206,9 @@ public:
 
 	// GameMode에서 Possess가 끝난 후 플레이어 초기화
 	void InitializePlayer();
+
+	// 자동 공격 시 현재 직업의 공격 몽타주 재생
+	void PlayAttackMontage(float AttackInterval);
 
 	// 현재 최대 체력 반환
 	float GetMaxHealth() const { return MaxHealth; }

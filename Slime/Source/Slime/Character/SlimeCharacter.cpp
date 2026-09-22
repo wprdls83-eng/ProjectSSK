@@ -12,7 +12,9 @@
 
 #include "Camera/CameraComponent.h" 
 #include "GameFramework/SpringArmComponent.h" 
-#include "GameFramework/CharacterMovementComponent.h" 
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Animation/AnimInstance.h"
+#include "Animation/AnimMontage.h"
 #include "Blueprint/UserWidget.h" 
 #include "Kismet/GameplayStatics.h"
 #include "EngineUtils.h"
@@ -667,6 +669,35 @@ void ASlimeCharacter::LookAtNearestEnemy()
 
 	SetActorRotation(
 		LookDirection.Rotation()
+	);
+}
+
+void ASlimeCharacter::PlayAttackMontage(float AttackInterval)
+{
+	// 공격 몽타주가 설정되지 않았다면 재생하지 않음
+	if (!IsValid(AttackMontage))
+	{
+		return;
+	}
+
+	// 현재 캐릭터의 AnimInstance 가져오기
+	UAnimInstance* AnimInstance =
+		GetMesh()->GetAnimInstance();
+
+	if (!IsValid(AnimInstance))
+	{
+		return;
+	}
+
+	// 기본 공격 간격 1초를 기준으로 몽타주 재생 속도 계산
+	// 공격 간격이 짧아질수록 몽타주도 빠르게 재생
+	const float MontagePlayRate =
+		1.f / AttackInterval;
+
+	// 현재 공격 속도에 맞춰 공격 몽타주 재생
+	AnimInstance->Montage_Play(
+		AttackMontage,
+		MontagePlayRate
 	);
 }
 

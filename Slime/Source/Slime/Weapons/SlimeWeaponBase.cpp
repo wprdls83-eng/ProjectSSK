@@ -1,8 +1,9 @@
 ﻿// SlimeWeaponBase.cpp
 
 #include "Slime/Weapons/SlimeWeaponBase.h"
-#include "Slime/Character/SlimeEnemy.h"
 #include "Slime/Weapons/SlimeProjectile.h"
+#include "Slime/Character/SlimeEnemy.h"
+#include "Slime/Character/SlimeCharacter.h"
 
 #include "EngineUtils.h"
 
@@ -72,6 +73,16 @@ void ASlimeWeaponBase::AutoAttack()
     if (!IsValid(TargetEnemy))
     {
         return;
+    }
+
+    // 무기를 소유하고 있는 플레이어 가져오기
+    ASlimeCharacter* OwnerCharacter =
+        Cast<ASlimeCharacter>(GetOwner());
+
+    // 실제 공격할 대상이 있을 때 공격 몽타주 재생
+    if (IsValid(OwnerCharacter))
+    {
+        OwnerCharacter->PlayAttackMontage(AttackInterval);
     }
 
     // 투사체 사이 간격

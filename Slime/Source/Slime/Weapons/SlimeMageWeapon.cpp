@@ -3,7 +3,7 @@
 #include "Slime/Weapons/SlimeMageWeapon.h"
 #include "Slime/Weapons/SlimeMageProjectile.h"
 #include "Slime/Character/SlimeEnemy.h"
-
+#include "Slime/Character/SlimeCharacter.h"
 
 ASlimeMageWeapon::ASlimeMageWeapon()
 {
@@ -20,6 +20,16 @@ void ASlimeMageWeapon::AutoAttack()
 	if (!IsValid(TargetEnemy))
 	{
 		return;
+	}
+
+	// 무기 Owner를 플레이어 캐릭터로 변환
+	ASlimeCharacter* OwnerCharacter =
+		Cast<ASlimeCharacter>(GetOwner());
+
+	// 실제 공격할 Enemy가 있을 때 공격 몽타주 재생
+	if (IsValid(OwnerCharacter))
+	{
+		OwnerCharacter->PlayAttackMontage(AttackInterval);
 	}
 
 	// 마법사 전용 Projectile 클래스가 없다면 생성 불가

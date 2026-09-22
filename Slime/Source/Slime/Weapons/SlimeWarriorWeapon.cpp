@@ -2,6 +2,7 @@
 
 #include "Slime/Weapons/SlimeWarriorWeapon.h"
 #include "Slime/Character/SlimeEnemy.h"
+#include "Slime/Character/SlimeCharacter.h"
 
 #include "EngineUtils.h"
 
@@ -30,6 +31,16 @@ void ASlimeWarriorWeapon::AutoAttack()
 	if (!IsValid(WeaponOwner))
 	{
 		return;
+	}
+
+	// 무기 Owner를 플레이어 캐릭터로 변환
+	ASlimeCharacter* OwnerCharacter =
+		Cast<ASlimeCharacter>(WeaponOwner);
+
+	// 실제 공격할 Enemy가 있을 때 공격 몽타주 재생
+	if (IsValid(OwnerCharacter))
+	{
+		OwnerCharacter->PlayAttackMontage(AttackInterval);
 	}
 
 	// 플레이어에서 Target Enemy로 향하는 방향
