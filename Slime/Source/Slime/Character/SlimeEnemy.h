@@ -7,6 +7,9 @@
 #include "SlimeEnemy.generated.h"
 
 class ASlimeExpOrbBase;
+class UMaterialInstanceDynamic;
+class USoundBase;
+class UNiagaraSystem;
 
 UCLASS()
 class SLIME_API ASlimeEnemy : public ACharacter
@@ -24,6 +27,22 @@ protected:
 	// 경험치 종류 클래스
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<ASlimeExpOrbBase> ExpOrbClass;
+
+	// 피격 시 사용할 Dynamic Material
+	UPROPERTY()
+	TObjectPtr<UMaterialInstanceDynamic> HitFlashMaterial;
+
+	// Enemy 피격 시 재생할 사운드
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Sound")
+	TObjectPtr<USoundBase> HitSound;
+
+	// Enemy 사망 시 랜덤으로 재생할 사운드 목록
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Sound")
+	TArray<TObjectPtr<USoundBase>> DeathSounds;
+
+	// Enemy 사망 시 재생할 Niagara 이펙트
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Effect")
+	TObjectPtr<UNiagaraSystem> DeathEffect;
 	
 public:
 	// 적의 최대 체력
@@ -42,6 +61,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy|Attack")
 	float ContactDamageCooldown = 1.f;
 
+	// 피격 Flash 지속 시간
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Enemy|Hit")
+	float HitFlashDuration = 0.1f;
+
+	// 사망 후 실제로 제거되기까지의 시간
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Enemy|Death")
+	float DeathDelay = 0.3f;
+
 	// 현재 Wave의 난이도 배율을 Enemy 능력치에 적용
 	void ApplyWaveStatMultiplier(
 		float HealthMultiplier,
@@ -59,6 +86,12 @@ public:
 	// 접촉 데미지 쿨타임 Timer
 	FTimerHandle ContactDamageTimerHandle;
 
+	// 피격 시 원래 색으로 돌아오기 위한 Timer
+	FTimerHandle HitFlashTimerHandle;
+
+	// 사망 마무리 처리를 위한 Timer
+	FTimerHandle DeathTimerHandle;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
@@ -75,6 +108,12 @@ protected:
 
 	// 접촉 데미지 쿨타임 종료
 	void ResetContactDamage();
+
+	// 피격 순간 시각 효과 시작
+	void StartHitFlash();
+
+	// 피격 효과 종료 후 원래 상태로 복구
+	void EndHitFlash();
 
 	// 현재 Enemy가 접촉 시 적용할 데미지 반환
 	virtual float GetContactDamage() const;

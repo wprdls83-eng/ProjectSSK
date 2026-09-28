@@ -5,9 +5,10 @@
 #include "Slime/Item/SlimeExpOrbBase.h"
 #include "Slime/Enemy/SlimeEnemySpawnManager.h"
 
-#include "GameFramework/CharacterMovementComponent.h" // CharacterMovementComponent 사용
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/CapsuleComponent.h"
+#include "NiagaraFunctionLibrary.h"
 
 ASlimeEnemy::ASlimeEnemy()
 {
@@ -41,6 +42,19 @@ void ASlimeEnemy::BeginPlay()
 		this,
 		&ASlimeEnemy::OnEnemyHit
 	);
+
+	// Mesh의 0번 Material을 Dynamic Material로 생성
+	HitFlashMaterial =
+		GetMesh()->CreateAndSetMaterialInstanceDynamic(0);
+
+	// 처음에는 피격 효과가 꺼진 상태
+	if (IsValid(HitFlashMaterial))
+	{
+		HitFlashMaterial->SetScalarParameterValue(
+			TEXT("HitFlash"),
+			0.f
+		);
+	}
 }
 
 void ASlimeEnemy::Tick(float DeltaTime)
@@ -109,20 +123,24 @@ void ASlimeEnemy::TakeDamageFromProjectile(float DamageAmount)
 		return;
 	}
 
+	// 피격 시각 효과 실행
+	StartHitFlash();
+
+	// 피격 사운드 재생
+	if (HitSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(
+			this,
+			HitSound,
+			GetActorLocation()
+		);
+	}
+
 	// 현재 체력 감소
 	CurrentHealth -= DamageAmount;
 
 	// 체력이 변경되었으므로 추가 처리 실행
 	OnHealthChanged();
-
-	UE_LOG(
-		LogTemp,
-		Warning,
-		TEXT("%s 피격! HP : %.1f / %.1f"),
-		*GetName(),
-		CurrentHealth,
-		MaxHealth
-	);
 
 	// 체력이 모두 소진되면 사망 처리
 	if (CurrentHealth <= 0.f)
@@ -138,8 +156,59 @@ bool ASlimeEnemy::IsDead() const
 }
 
 void ASlimeEnemy::Die()
-{
-	FinishDeath();
+{	
+	// 사망 Niagara 이펙트 재생
+	if (DeathEffect)
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			this,
+			DeathEffect,
+			GetActorLocation(),
+			GetActorRotation()
+		);
+	}
+
+	// 사망 사운드가 하나 이상 등록되어 있다면 랜덤으로 재생
+	if (DeathSounds.Num() > 0)
+	{
+		// 배열에서 랜덤 인덱스 선택
+		const int32 RandomIndex =
+			FMath::RandRange(0, DeathSounds.Num() - 1);
+
+		// 선택된 사운드 가져오기
+		USoundBase* SelectedDeathSound =
+			DeathSounds[RandomIndex];
+
+		// 선택된 사운드가 유효하면 재생
+		if (IsValid(SelectedDeathSound))
+		{
+			UGameplayStatics::PlaySoundAtLocation(
+				this,
+				SelectedDeathSound,
+				GetActorLocation()
+			);
+		}
+	}
+
+	// 사망하면 이동 정지
+	if (GetCharacterMovement())
+	{
+		GetCharacterMovement()->DisableMovement();
+	}
+
+	// 사망한 Enemy의 충돌 비활성화
+	GetCapsuleComponent()->SetCollisionEnabled(
+		ECollisionEnabled::NoCollision
+	);
+
+	// 일정 시간 동안 사망 연출을 보여준 뒤 실제 사망 처리
+	GetWorldTimerManager().SetTimer(
+		DeathTimerHandle,
+		this,
+		&ASlimeEnemy::FinishDeath,
+		DeathDelay,
+		false
+	);
 }
 
 void ASlimeEnemy::FinishDeath()
@@ -266,4 +335,43 @@ void ASlimeEnemy::ResetContactDamage()
 void ASlimeEnemy::OnHealthChanged()
 {
 	// 기본 Enemy는 체력 변경 시 추가 처리 없음
+}
+
+void ASlimeEnemy::StartHitFlash()
+{
+	if (!IsValid(HitFlashMaterial))
+	{
+		return;
+	}
+
+	HitFlashMaterial->SetScalarParameterValue(
+		TEXT("HitFlash"),
+		1.f
+	);
+
+	GetWorldTimerManager().ClearTimer(
+		HitFlashTimerHandle
+	);
+
+	GetWorldTimerManager().SetTimer(
+		HitFlashTimerHandle,
+		this,
+		&ASlimeEnemy::EndHitFlash,
+		HitFlashDuration,
+		false
+	);
+}
+
+void ASlimeEnemy::EndHitFlash()
+{
+	if (!IsValid(HitFlashMaterial))
+	{
+		return;
+	}
+
+	// HitFlash를 0으로 만들어 원래 색으로 복구
+	HitFlashMaterial->SetScalarParameterValue(
+		TEXT("HitFlash"),
+		0.f
+	);
 }
