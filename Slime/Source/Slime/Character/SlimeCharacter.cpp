@@ -95,6 +95,19 @@ void ASlimeCharacter::BeginPlay()
 	// 현재 체력을 최대 체력으로 초기화
 	CurrentHealth = MaxHealth;
 
+	// Player Mesh의 0번 Material을 Dynamic Material로 생성
+	HitFlashMaterial =
+		GetMesh()->CreateAndSetMaterialInstanceDynamic(2);
+
+	// 처음에는 피격 Flash가 꺼진 상태
+	if (IsValid(HitFlashMaterial))
+	{
+		HitFlashMaterial->SetScalarParameterValue(
+			TEXT("HitFlash"),
+			0.f
+		);
+	}
+
 	// 무기 클래스가 설정되지 않았다면 종료
 	if (!WeaponClass)
 	{
@@ -460,6 +473,19 @@ void ASlimeCharacter::TakeDamageFromEnemy(float DamageAmount)
 		return;
 	}
 
+	// 플레이어 피격 시각 효과 실행
+	StartHitFlash();
+
+	// 플레이어 피격 사운드 재생
+	if (IsValid(HitSound))
+	{
+		UGameplayStatics::PlaySoundAtLocation(
+			this,
+			HitSound,
+			GetActorLocation()
+		);
+	}
+
 	// 현재 체력 감소
 	CurrentHealth -= DamageAmount;
 
@@ -480,6 +506,50 @@ bool ASlimeCharacter::CanTakeDamageFromEnemy() const
 {
 	// 기본 캐릭터는 데미지를 받을 수 있음
 	return true;
+}
+
+void ASlimeCharacter::StartHitFlash()
+{	
+	// Dynamic Material이 없다면 실행하지 않음
+	if (!IsValid(HitFlashMaterial))
+	{
+		return;
+	}
+
+	// HitFlash를 1로 만들어 플레이어를 빨간색으로 변경
+	HitFlashMaterial->SetScalarParameterValue(
+		TEXT("HitFlash"),
+		1.f
+	);
+
+	// 기존 Hit Flash Timer가 있다면 초기화
+	GetWorldTimerManager().ClearTimer(
+		HitFlashTimerHandle
+	);
+
+	// 일정 시간 후 원래 색으로 복구
+	GetWorldTimerManager().SetTimer(
+		HitFlashTimerHandle,
+		this,
+		&ASlimeCharacter::EndHitFlash,
+		HitFlashDuration,
+		false
+	);
+}
+
+void ASlimeCharacter::EndHitFlash()
+{
+	// Dynamic Material이 없다면 실행하지 않음
+	if (!IsValid(HitFlashMaterial))
+	{
+		return;
+	}
+
+	// HitFlash를 0으로 만들어 원래 색으로 복구
+	HitFlashMaterial->SetScalarParameterValue(
+		TEXT("HitFlash"),
+		0.f
+	);
 }
 
 void ASlimeCharacter::Die()

@@ -7,6 +7,7 @@
 #include "SlimeEnemy.generated.h"
 
 class ASlimeExpOrbBase;
+class USlimeDamageTextWidget;
 class UMaterialInstanceDynamic;
 class USoundBase;
 class UNiagaraSystem;
@@ -27,6 +28,10 @@ protected:
 	// 경험치 종류 클래스
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<ASlimeExpOrbBase> ExpOrbClass;
+
+	// Enemy 피격 시 생성할 데미지 Floating Text Widget
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|UI")
+	TSubclassOf<USlimeDamageTextWidget> DamageTextWidgetClass;
 
 	// 피격 시 사용할 Dynamic Material
 	UPROPERTY()
@@ -114,6 +119,9 @@ protected:
 
 	// 피격 효과 종료 후 원래 상태로 복구
 	void EndHitFlash();
+
+	// Enemy가 받은 데미지를 Floating Text로 표시
+	void ShowDamageText(float DamageAmount);
 
 	// 현재 Enemy가 접촉 시 적용할 데미지 반환
 	virtual float GetContactDamage() const;

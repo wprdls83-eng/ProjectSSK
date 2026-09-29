@@ -4,6 +4,7 @@
 #include "Slime/Character/SlimeCharacter.h"
 #include "Slime/Item/SlimeExpOrbBase.h"
 #include "Slime/Enemy/SlimeEnemySpawnManager.h"
+#include "Slime/UI/SlimeDamageTextWidget.h"
 
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -135,6 +136,9 @@ void ASlimeEnemy::TakeDamageFromProjectile(float DamageAmount)
 			GetActorLocation()
 		);
 	}
+
+	// 실제로 받은 데미지를 Floating Text로 표시
+	ShowDamageText(DamageAmount);
 
 	// 현재 체력 감소
 	CurrentHealth -= DamageAmount;
@@ -374,4 +378,62 @@ void ASlimeEnemy::EndHitFlash()
 		TEXT("HitFlash"),
 		0.f
 	);
+}
+
+void ASlimeEnemy::ShowDamageText(float DamageAmount)
+{	
+	// Damage Text Widget이 설정되어 있지 않으면 생성하지 않음
+	if (!DamageTextWidgetClass)
+	{
+		return;
+	}
+
+	// WBP_DamageText 생성
+	USlimeDamageTextWidget* DamageWidget =
+		CreateWidget<USlimeDamageTextWidget>(
+			GetWorld(),
+			DamageTextWidgetClass
+		);
+
+	if (!IsValid(DamageWidget))
+	{	
+		return;
+	}
+
+	// Damage Widget을 화면에 표시
+	DamageWidget->AddToViewport();
+
+	// 현재 플레이어 컨트롤러 가져오기
+	APlayerController* PlayerController =
+		UGameplayStatics::GetPlayerController(this, 0);
+
+	if (IsValid(PlayerController))
+	{
+		// Enemy 머리 위쪽의 월드 위치 계산
+		FVector DamageTextWorldLocation =
+			GetActorLocation();
+
+		DamageTextWorldLocation.Z += 100.f;
+
+		// 월드 위치를 화면 좌표로 변환
+		FVector2D ScreenPosition;
+
+		if (PlayerController->ProjectWorldLocationToScreen(
+			DamageTextWorldLocation,
+			ScreenPosition
+		))
+		{	
+			// Damage Text가 몬스터 중심에 오도록 위치 보정
+			ScreenPosition.X += 250.f;
+
+			// Damage Widget을 Enemy 머리 위 화면 위치로 이동
+			DamageWidget->SetPositionInViewport(
+				ScreenPosition,
+				false
+			);
+		}
+	}
+
+	// 실제 Enemy가 받은 데미지 값을 Widget에 전달
+	DamageWidget->SetDamage(DamageAmount);
 }

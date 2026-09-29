@@ -16,6 +16,9 @@ class ASlimeWeaponBase;
 class USlimePlayerHUDWidget;
 class USlimeGameOverWidget;
 class UAnimMontage;
+class UMaterialInstanceDynamic;
+class USoundBase;
+
 struct FInputActionValue;
 
 UCLASS()
@@ -91,6 +94,14 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation")
 	TObjectPtr<UAnimMontage> AttackMontage;
 
+	// 플레이어 피격 시 사용할 Dynamic Material
+	UPROPERTY()
+	TObjectPtr<UMaterialInstanceDynamic> HitFlashMaterial;
+
+	// 플레이어 피격 시 재생할 사운드
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Player|Sound")
+	TObjectPtr<USoundBase> HitSound;
+
 	// 최대 체력
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player")
 	float MaxHealth = 100.f;
@@ -110,6 +121,10 @@ protected:
 	// 이동 속도 업그레이드 증가량
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Player|Upgrade")
 	float MoveSpeedUpgradeAmount = 30.f;
+
+	// 플레이어 피격 Flash 지속 시간
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Player|Hit")
+	float HitFlashDuration = 0.3f;
 
 	// 직업 선택 화면에서 사용하는 Preview 캐릭터인지 여부
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player|Preview")
@@ -138,6 +153,9 @@ protected:
 	// 현재 플레이어가 입력하고 있는 이동 방향
 	FVector CurrentMoveDirection = FVector::ZeroVector;
 
+	// 피격 후 원래 색으로 돌아가기 위한 Timer
+	FTimerHandle HitFlashTimerHandle;
+
 protected:
 	// WASD 입력을 받아 캐릭터를 이동시키는 함수
 	void Move(const FInputActionValue& Value);
@@ -155,6 +173,12 @@ protected:
 
 	// 현재 Enemy 데미지를 받을 수 있는지 확인
 	virtual bool CanTakeDamageFromEnemy() const;
+
+	// 플레이어 피격 순간 Hit Flash 시작
+	void StartHitFlash();
+
+	// Hit Flash 종료 후 원래 색으로 복구
+	void EndHitFlash();
 
 	// 플레이어 사망 처리
 	void Die();
