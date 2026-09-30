@@ -6,6 +6,9 @@
 #include "Slime/Character/SlimeEnemy.h"
 #include "SlimeCharge.generated.h"
 
+class UNiagaraSystem;
+class USoundBase;
+
 UCLASS()
 class SLIME_API ASlimeCharge : public ASlimeEnemy
 {
@@ -15,6 +18,14 @@ public:
 	ASlimeCharge();
 
 protected:
+	// 돌진 준비 중 재생할 경고 Niagara 이펙트
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Charge|Effect")
+	TObjectPtr<UNiagaraSystem> ChargeWarningEffect;
+
+	// 돌진 준비 시작 시 재생할 경고 사운드
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Charge|Sound")
+	TObjectPtr<USoundBase> ChargeWarningSound;
+
 	// 플레이어가 이 거리 안에 들어오면 돌진 준비 시작
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Charge")
 	float ChargeDetectRange = 600.f;
@@ -85,6 +96,14 @@ protected:
 
 	// 현재 상태에 따른 접촉 데미지 반환
 	virtual float GetContactDamage() const override;
+
+	// 돌진 경고선 표시/숨김을 Blueprint에서 처리
+	UFUNCTION(BlueprintImplementableEvent, Category = "Charge|Warning")
+	void SetChargeWarningVisible(bool bVisible);
+
+	// 저장된 돌진 방향에 맞춰 Blueprint 경고선 방향 설정
+	UFUNCTION(BlueprintImplementableEvent, Category = "Charge|Warning")
+	void UpdateChargeWarningDirection(FVector Direction);
 
 public:
 	// 돌진 시작

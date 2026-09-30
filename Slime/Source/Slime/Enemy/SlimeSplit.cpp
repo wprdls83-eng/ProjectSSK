@@ -2,13 +2,26 @@
 
 #include "Slime/Enemy/SlimeSplit.h"
 
+#include "NiagaraFunctionLibrary.h"
+
 ASlimeSplit::ASlimeSplit()
 {
 
 }
 
 void ASlimeSplit::Die()
-{
+{	
+	// 분열 가능한 상태라면 분열 이펙트 재생
+	if (bCanSplit && IsValid(SplitEffect))
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			this,
+			SplitEffect,
+			GetActorLocation(),
+			GetActorRotation()
+		);
+	}
+
 	// 분열 가능한 상태라면 작은 Enemy 생성
 	if (bCanSplit)
 	{

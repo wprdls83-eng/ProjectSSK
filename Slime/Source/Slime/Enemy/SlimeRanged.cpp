@@ -6,6 +6,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "TimerManager.h"
+#include "NiagaraFunctionLibrary.h"
 
 ASlimeRanged::ASlimeRanged()
 {
@@ -103,6 +104,21 @@ void ASlimeRanged::RangedAttack()
 	// 발사 위치
 	const FVector SpawnLocation =
 		GetActorLocation();
+
+	// 발사 이펙트만 슬라임 앞쪽에서 재생
+	if (IsValid(FireEffect))
+	{
+		const FVector FireEffectLocation =
+			SpawnLocation
+			+ GetActorForwardVector() * 80.f;
+
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			this,
+			FireEffect,
+			FireEffectLocation,
+			GetActorRotation()
+		);
+	}
 
 	// 발사 순간 플레이어 방향 계산
 	FVector FireDirection =

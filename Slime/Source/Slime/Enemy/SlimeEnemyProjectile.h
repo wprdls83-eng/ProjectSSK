@@ -9,6 +9,8 @@
 class USphereComponent;
 class UStaticMeshComponent;
 class ASlimeEnemy;
+class UNiagaraSystem;
+class UMaterialInterface;
 
 UCLASS()
 class SLIME_API ASlimeEnemyProjectile : public AActor
@@ -26,6 +28,18 @@ protected:
 	// Projectile 외형
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Projectile")
 	TObjectPtr<UStaticMeshComponent> ProjectileMesh;
+
+	// Projectile이 대상에게 명중했을 때 재생할 Niagara 이펙트
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Projectile|Effect")
+	TObjectPtr<UNiagaraSystem> HitEffect;
+
+	// 반사된 Projectile이 Enemy에게 명중했을 때 재생할 Niagara 이펙트
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Projectile|Effect")
+	TObjectPtr<UNiagaraSystem> ReflectHitEffect;
+
+	// 마법사에게 반사됐을 때 Projectile에 적용할 Material
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Projectile|Reflect")
+	TObjectPtr<UMaterialInterface> ReflectMaterial;
 
 	// 이동 속도
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile")

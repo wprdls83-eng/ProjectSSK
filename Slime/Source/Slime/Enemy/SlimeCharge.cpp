@@ -4,6 +4,7 @@
 
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "NiagaraFunctionLibrary.h"
 
 ASlimeCharge::ASlimeCharge()
 {
@@ -68,6 +69,36 @@ void ASlimeCharge::Tick(float DeltaTime)
 	// 돌진 준비 시작
 	bIsPreparingCharge = true;
 
+	// 돌진 준비가 시작되면 바닥 경고선 표시
+	SetChargeWarningVisible(true);
+
+	// 돌진 준비 경고 이펙트 위치
+	FVector WarningLocation = GetActorLocation();
+
+	// Slime보다 위쪽에 표시
+	WarningLocation.Z += 100.f;
+
+	// 돌진 준비 경고 이펙트 재생
+	if (IsValid(ChargeWarningEffect))
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			this,
+			ChargeWarningEffect,
+			GetActorLocation(),
+			GetActorRotation()
+		);
+	}
+
+	// 돌진 준비 경고 사운드 재생
+	if (IsValid(ChargeWarningSound))
+	{
+		UGameplayStatics::PlaySoundAtLocation(
+			this,
+			ChargeWarningSound,
+			GetActorLocation()
+		);
+	}
+
 	// 돌진 준비가 시작되는 순간의 플레이어 방향을 저장
 	ChargeDirection =
 		PlayerCharacter->GetActorLocation()
@@ -78,6 +109,9 @@ void ASlimeCharge::Tick(float DeltaTime)
 
 	// 방향 벡터 정규화
 	ChargeDirection.Normalize();
+
+	// 실제 돌진 방향을 Blueprint 경고선에 전달
+	UpdateChargeWarningDirection(ChargeDirection);
 
 	GetWorldTimerManager().SetTimer(
 		ChargeReadyTimerHandle,
@@ -108,6 +142,9 @@ void ASlimeCharge::StartCharge()
 
 	// 준비 상태 종료
 	bIsPreparingCharge = false;
+
+	// 실제 돌진이 시작되면 바닥 경고선 숨김
+	SetChargeWarningVisible(false);
 
 	// 실제 돌진 상태 시작
 	bIsCharging = true;

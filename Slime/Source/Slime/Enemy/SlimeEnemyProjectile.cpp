@@ -8,6 +8,7 @@
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "EngineUtils.h"
+#include "NiagaraFunctionLibrary.h"
 
 ASlimeEnemyProjectile::ASlimeEnemyProjectile()
 {
@@ -150,6 +151,17 @@ void ASlimeEnemyProjectile::OnProjectileOverlap(
 			Damage * ReflectDamageMultiplier
 		);
 
+		// 반사된 Projectile이 Enemy에게 명중하면 반사용 Hit Niagara 재생
+		if (IsValid(ReflectHitEffect))
+		{
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+				this,
+				ReflectHitEffect,
+				GetActorLocation(),
+				GetActorRotation()
+			);
+		}
+
 		// 적중 후 Projectile 제거
 		Destroy();
 
@@ -185,6 +197,15 @@ void ASlimeEnemyProjectile::OnProjectileOverlap(
 		// 반사 상태로 변경
 		bIsReflected = true;
 
+		// 반사된 Projectile의 Material을 반사용 Material로 변경
+		if (IsValid(ReflectMaterial))
+		{
+			ProjectileMesh->SetMaterial(
+				0,
+				ReflectMaterial
+			);
+		}
+
 		// Projectile → Enemy 방향 계산
 		FVector ReflectDirection =
 			TargetEnemy->GetActorLocation()
@@ -206,6 +227,17 @@ void ASlimeEnemyProjectile::OnProjectileOverlap(
 	PlayerCharacter->TakeDamageFromEnemy(
 		Damage
 	);
+
+	// 플레이어에게 명중한 위치에서 Hit Niagara 재생
+	if (IsValid(HitEffect))
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			this,
+			HitEffect,
+			GetActorLocation(),
+			GetActorRotation()
+		);
+	}
 
 	// 플레이어에게 맞으면 Projectile 제거
 	Destroy();

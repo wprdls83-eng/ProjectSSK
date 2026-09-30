@@ -6,6 +6,8 @@
 #include "Slime/Character/SlimeEnemy.h"
 #include "SlimeSplit.generated.h"
 
+class UNiagaraSystem;
+
 UCLASS()
 class SLIME_API ASlimeSplit : public ASlimeEnemy
 {
@@ -18,6 +20,10 @@ protected:
 	// 분열 후 생성할 작은 슬라임 클래스
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Split")
 	TSubclassOf<ASlimeEnemy> SplitEnemyClass;
+
+	// 분열 순간 재생할 Niagara 이펙트
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Split|Effect")
+	TObjectPtr<UNiagaraSystem> SplitEffect;
 
 	// 분열해서 생성할 Enemy 수
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Split")
