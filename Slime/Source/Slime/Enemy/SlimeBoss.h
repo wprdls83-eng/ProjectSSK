@@ -6,6 +6,12 @@
 #include "Slime/Character/SlimeEnemy.h"
 #include "SlimeBoss.generated.h"
 
+class UStaticMeshComponent;
+class UMaterialInstanceDynamic;
+class UNiagaraSystem;
+class UStaticMeshComponent;
+class USoundBase;
+
 UCLASS()
 class SLIME_API ASlimeBoss : public ASlimeEnemy
 {
@@ -15,6 +21,34 @@ public:
 	ASlimeBoss();
 
 protected:
+	// Boss 근접 공격 범위를 표시하는 Warning Mesh
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|Melee Warning")
+	TObjectPtr<UStaticMeshComponent> MeleeWarningMesh;
+
+	// 근접 공격 Warning 진행도를 제어할 Dynamic Material
+	UPROPERTY()
+	TObjectPtr<UMaterialInstanceDynamic> MeleeWarningMaterial;
+
+	// Boss 근접 공격이 실제로 발동될 때 재생할 Niagara 이펙트
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss|Attack")
+	TObjectPtr<UNiagaraSystem> MeleeAttackEffect;
+
+	// Boss 돌진 공격의 위험 범위를 표시할 Mesh
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|Charge")
+	TObjectPtr<UStaticMeshComponent> ChargeWarningMesh;
+
+	// Boss 돌진 시 재생할 Niagara 이펙트
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss|Charge")
+	TObjectPtr<UNiagaraSystem> ChargeEffect;
+
+	// Boss 근접 범위 공격 예고 시 재생할 경고음
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss|Melee")
+	TObjectPtr<USoundBase> MeleeWarningSound;
+
+	// Boss 돌진 예고시 재생할 효과음
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Boss|Charge")
+	TObjectPtr<USoundBase> ChargeSound;
+
 	// Boss 공격 가능 거리
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss|Attack")
 	float BossAttackRange = 500.f;
@@ -62,6 +96,9 @@ protected:
 	// 근거리 공격이 실제로 발동되기 전 예고 시간
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss|Attack")
 	float MeleeWarningTime = 3.f;
+
+	// 근접 공격 Warning이 시작된 후 지난 시간
+	float MeleeWarningElapsedTime = 0.f;
 
 	// 현재 Boss가 공격 가능한 상태인지
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss|Attack")

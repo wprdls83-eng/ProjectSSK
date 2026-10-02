@@ -8,6 +8,9 @@
 #include "Kismet/GameplayStatics.h"
 #include "DrawDebugHelpers.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "NiagaraFunctionLibrary.h"
 
 ASlimeBoss::ASlimeBoss()
 {
@@ -31,15 +34,99 @@ ASlimeBoss::ASlimeBoss()
 		this,
 		&ASlimeBoss::OnBossChargeHit
 	);
+
+	// Boss 근접 공격 Warning Mesh 생성
+	MeleeWarningMesh =
+		CreateDefaultSubobject<UStaticMeshComponent>(
+			TEXT("MeleeWarningMesh")
+		);
+
+	// Boss Root에 부착
+	MeleeWarningMesh->SetupAttachment(
+		GetRootComponent()
+	);
+
+	// Warning Mesh는 충돌 판정에 사용하지 않음
+	MeleeWarningMesh->SetCollisionEnabled(
+		ECollisionEnabled::NoCollision
+	);
+
+	// 게임 시작 시에는 숨김
+	MeleeWarningMesh->SetVisibility(false);
+
+	// Boss 돌진 공격 Warning Mesh 생성
+	ChargeWarningMesh =
+		CreateDefaultSubobject<UStaticMeshComponent>(
+			TEXT("ChargeWarningMesh")
+		);
+
+	// Boss의 RootComponent에 부착
+	ChargeWarningMesh->SetupAttachment(
+		RootComponent
+	);
+
+	// 처음에는 돌진 Warning을 숨김
+	ChargeWarningMesh->SetVisibility(false);
+
+	// Warning Mesh는 충돌하지 않도록 설정
+	ChargeWarningMesh->SetCollisionEnabled(
+		ECollisionEnabled::NoCollision
+	);
 }
 
 void ASlimeBoss::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// 근접 공격 Warning Material을 Dynamic Material로 생성
+	MeleeWarningMaterial =
+		MeleeWarningMesh->CreateAndSetMaterialInstanceDynamic(0);
+
+	// 처음에는 Warning 진행도 0
+	if (IsValid(MeleeWarningMaterial))
+	{
+		MeleeWarningMaterial->SetScalarParameterValue(
+			TEXT("WarningProgress"),
+			0.f
+		);
+	}
+
+	// 평상시에는 Warning Mesh 숨김
+	MeleeWarningMesh->SetVisibility(false);
 }
 
 void ASlimeBoss::Tick(float DeltaTime)
 {	
+	// 근접 공격 Warning이 표시 중이라면 진행도 증가
+	if (
+		IsValid(MeleeWarningMesh)
+		&& MeleeWarningMesh->IsVisible()
+		&& IsValid(MeleeWarningMaterial)
+		)
+	{
+		// 지난 시간 누적
+		MeleeWarningElapsedTime += DeltaTime;
+
+		// 0 ~ 1 사이의 시간 진행도
+		const float TimeProgress =
+			FMath::Clamp(
+				MeleeWarningElapsedTime / MeleeWarningTime,
+				0.f,
+				1.f
+			);
+
+		// Material의 원 반지름에 맞춰
+		// 0 ~ 0.5 범위로 변환
+		const float WarningProgress =
+			TimeProgress * 0.5f;
+
+		// Material의 WarningProgress 값 변경
+		MeleeWarningMaterial->SetScalarParameterValue(
+			TEXT("WarningProgress"),
+			WarningProgress
+		);
+	}
+
 	// 돌진 중이라면 저장해둔 방향으로 이동
 	if (bIsCharging)
 	{
@@ -199,25 +286,30 @@ void ASlimeBoss::PerformMeleeAttack()
 	// 공격 예고부터 Boss 이동 정지
 	bIsAttacking = true;
 
-	// Boss 현재 위치
-	const FVector BossLocation =
-		GetActorLocation();
+	// 근접 공격 Warning 표시
+	MeleeWarningMesh->SetVisibility(true);
 
-	// 실제 공격이 발생할 범위를 미리 표시
-	DrawDebugCircle(
-		GetWorld(),
-		BossLocation + FVector(0.f, 0.f, 10.f),
-		MeleeAttackRadius,
-		64,
-		FColor::Red,
-		false,
-		MeleeWarningTime,
-		0,
-		5.f,
-		FVector(1.f, 0.f, 0.f),
-		FVector(0.f, 1.f, 0.f),
-		false
-	);
+	// 근접 범위 공격 Warning이 시작될 때 경고음 재생
+	if (IsValid(MeleeWarningSound))
+	{
+		UGameplayStatics::PlaySoundAtLocation(
+			this,
+			MeleeWarningSound,
+			GetActorLocation()
+		);
+	}
+
+	// Warning 진행 시간 초기화
+	MeleeWarningElapsedTime = 0.f;
+
+	// Warning 진행도를 처음부터 시작
+	if (IsValid(MeleeWarningMaterial))
+	{
+		MeleeWarningMaterial->SetScalarParameterValue(
+			TEXT("WarningProgress"),
+			0.f
+		);
+	}
 
 	// 예고 시간이 지난 뒤 실제 공격 실행
 	GetWorldTimerManager().SetTimer(
@@ -235,11 +327,37 @@ void ASlimeBoss::ResetAttackCooldown()
 }
 
 void ASlimeBoss::ExecuteMeleeAttack()
-{
+{	
+	// 실제 근접 공격이 발동되면 Warning Mesh 숨김
+	if (IsValid(MeleeWarningMesh))
+	{
+		MeleeWarningMesh->SetVisibility(false);
+	}
+
+	// 다음 공격을 위해 Warning 진행도 초기화
+	if (IsValid(MeleeWarningMaterial))
+	{
+		MeleeWarningMaterial->SetScalarParameterValue(
+			TEXT("WarningProgress"),
+			0.f
+		);
+	}
+
 	ASlimeCharacter* PlayerCharacter =
 		Cast<ASlimeCharacter>(
 			UGameplayStatics::GetPlayerCharacter(this, 0)
 		);
+
+	// Boss 근접 공격 발동 Niagara 이펙트 재생
+	if (IsValid(MeleeAttackEffect))
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			this,
+			MeleeAttackEffect,
+			GetActorLocation(),
+			GetActorRotation()
+		);
+	}
 
 	if (IsValid(PlayerCharacter))
 	{
@@ -312,91 +430,47 @@ void ASlimeBoss::PerformChargeAttack()
 	// 돌진 예고선 길이
 	const float ChargeWarningLength =
 		ChargeSpeed * ChargeDuration;
+	
+	// 돌진 Warning Mesh 설정
+	if (IsValid(ChargeWarningMesh))
+	{
+		// 돌진 방향의 월드 회전값 계산
+		const FRotator ChargeRotation =
+			ChargeDirection.Rotation();
 
-	// 돌진 예상 종료 위치
-	const FVector ChargeEndLocation =
-		GetActorLocation()
-		+ ChargeDirection * ChargeWarningLength;
+		// 먼저 Warning Mesh를 돌진 방향으로 회전
+		ChargeWarningMesh->SetWorldRotation(
+			FRotator(
+				0.f,
+				ChargeRotation.Yaw,
+				0.f
+			)
+		);
 
-	// 돌진 방향과 수직인 오른쪽 방향 계산
-	const FVector RightDirection =
-		FVector::CrossProduct(
-			FVector::UpVector,
-			ChargeDirection
-		).GetSafeNormal();
+		// Warning 표시
+		ChargeWarningMesh->SetVisibility(true);
 
-	// 예고선을 살짝 위로 올려 바닥에서 잘 보이게 함
-	const FVector HeightOffset(0.f, 0.f, 30.f);
+		// 돌진 예고 Niagara 이펙트 재생
+		if (IsValid(ChargeEffect))
+		{
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+				this,
+				ChargeEffect,
+				GetActorLocation() + FVector(0.f, 0.f, 100.f),
+				GetActorRotation()
+			);
+		}
 
-	// 왼쪽 시작 위치
-	const FVector LeftStart =
-		GetActorLocation()
-		- RightDirection * ChargeWarningWidth
-		+ HeightOffset;
-
-	// 왼쪽 끝 위치
-	const FVector LeftEnd =
-		ChargeEndLocation
-		- RightDirection * ChargeWarningWidth
-		+ HeightOffset;
-
-	// 오른쪽 시작 위치
-	const FVector RightStart =
-		GetActorLocation()
-		+ RightDirection * ChargeWarningWidth
-		+ HeightOffset;
-
-	// 오른쪽 끝 위치
-	const FVector RightEnd =
-		ChargeEndLocation
-		+ RightDirection * ChargeWarningWidth
-		+ HeightOffset;
-
-	// =========================
-	// 돌진 위험 범위 표시
-	// =========================
-
-	// 중앙선
-	DrawDebugLine(
-		GetWorld(),
-		GetActorLocation() + HeightOffset,
-		ChargeEndLocation + HeightOffset,
-		FColor::Yellow,
-		false,
-		ChargeWarningTime,
-		0,
-		6.f
-	);
-
-	// 왼쪽 경계선
-	DrawDebugLine(
-		GetWorld(),
-		LeftStart,
-		LeftEnd,
-		FColor::Yellow,
-		false,
-		ChargeWarningTime,
-		0,
-		6.f
-	);
-
-	// 오른쪽 경계선
-	DrawDebugLine(
-		GetWorld(),
-		RightStart,
-		RightEnd,
-		FColor::Yellow,
-		false,
-		ChargeWarningTime,
-		0,
-		6.f
-	);
-
-	UE_LOG(
-		LogTemp,
-		Warning,
-		TEXT("Boss Charge Warning!")
-	);
+		// 돌진 예고 효과음 재생
+		if (IsValid(ChargeSound))
+		{
+			UGameplayStatics::PlaySoundAtLocation(
+				this,
+				ChargeSound,
+				GetActorLocation()
+			);
+		}
+	}
 
 	// 일정 시간 예고 후 실제 돌진 시작
 	GetWorldTimerManager().SetTimer(
@@ -409,19 +483,19 @@ void ASlimeBoss::PerformChargeAttack()
 }
 
 void ASlimeBoss::StartCharge()
-{
+{	
+	// 돌진이 시작되면 Warning Mesh 숨김
+	if (IsValid(ChargeWarningMesh))
+	{
+		ChargeWarningMesh->SetVisibility(false);
+	}
+
 	// 새로운 돌진이 시작되었으므로
 	// 아직 플레이어에게 돌진 데미지를 주지 않은 상태로 초기화
 	bHasDealtChargeDamage = false;
 
 	// 돌진 시작
 	bIsCharging = true;
-
-	UE_LOG(
-		LogTemp,
-		Warning,
-		TEXT("Boss Charge Start!")
-	);
 
 	// 일정 시간이 지나면 돌진 종료
 	GetWorldTimerManager().SetTimer(
@@ -469,12 +543,6 @@ void ASlimeBoss::OnBossChargeHit(
 
 	// 이번 돌진에서는 더 이상 데미지를 주지 않음
 	bHasDealtChargeDamage = true;
-
-	UE_LOG(
-		LogTemp,
-		Warning,
-		TEXT("Boss Charge Hit!")
-	);
 }
 
 void ASlimeBoss::EndCharge()
@@ -484,12 +552,6 @@ void ASlimeBoss::EndCharge()
 
 	// 공격 상태 종료
 	bIsAttacking = false;
-
-	UE_LOG(
-		LogTemp,
-		Warning,
-		TEXT("Boss Charge End!")
-	);
 }
 
 void ASlimeBoss::CheckPhaseTwo()
